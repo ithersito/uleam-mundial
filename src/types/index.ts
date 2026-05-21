@@ -13,6 +13,10 @@ export interface UsuarioConPrediccion extends Omit<Usuario, 'contrasenaHash'> {
   prediccion: Prediccion | null;
 }
 
+export interface Configuracion {
+  prediccionesAbiertas: boolean;
+}
+
 export interface Prediccion {
   id: string;
   usuarioId: string;

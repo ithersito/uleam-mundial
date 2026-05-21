@@ -47,7 +47,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Verificar si ya tiene una predicción
+    // 1. Verificar si las predicciones están abiertas
+    const config = await db.getConfig();
+    if (!config.prediccionesAbiertas) {
+      return NextResponse.json(
+        { error: 'Las predicciones están cerradas. El plazo de envío ha finalizado.' },
+        { status: 403 }
+      );
+    }
+
+    // 3. Verificar si ya tiene una predicción
     const prediccionExistente = await db.getPredictionByUserId(user.id);
     if (prediccionExistente) {
       return NextResponse.json(
@@ -56,7 +65,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Obtener y validar datos
+    // 4. Obtener y validar datos
     const body = await request.json();
     const { primerPuesto, segundoPuesto, tercerPuesto, ecuadorPosicion } = body;
 
@@ -67,7 +76,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Validar que no haya países duplicados en el podio
+    // 5. Validar que no haya países duplicados en el podio
     if (primerPuesto === segundoPuesto || primerPuesto === tercerPuesto || segundoPuesto === tercerPuesto) {
       return NextResponse.json(
         { error: 'No puedes elegir el mismo país para más de un puesto en el podio.' },
@@ -75,7 +84,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Validar posición de Ecuador (1 a 48)
+    // 6. Validar posición de Ecuador (1 a 48)
     const pos = parseInt(ecuadorPosicion, 10);
     if (isNaN(pos) || pos < 1 || pos > 48) {
       return NextResponse.json(
@@ -84,7 +93,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Guardar predicción
+    // 7. Guardar predicción
     const nuevaPrediccion = await db.createPrediction({
       usuarioId: user.id,
       primerPuesto,

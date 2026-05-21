@@ -31,9 +31,17 @@ CREATE TABLE IF NOT EXISTS predicciones (
 CREATE INDEX IF NOT EXISTS idx_usuarios_correo ON usuarios(correo_institucional);
 CREATE INDEX IF NOT EXISTS idx_predicciones_usuario ON predicciones(usuario_id);
 
+-- Tabla de configuración (control de predicciones)
+CREATE TABLE IF NOT EXISTS configuracion (
+    clave VARCHAR(100) PRIMARY KEY,
+    valor TEXT NOT NULL
+);
+INSERT INTO configuracion (clave, valor) VALUES ('predicciones_abiertas', 'true') ON CONFLICT (clave) DO NOTHING;
+
 -- Deshabilitar RLS para acceso desde service_role (API del servidor)
 ALTER TABLE usuarios DISABLE ROW LEVEL SECURITY;
 ALTER TABLE predicciones DISABLE ROW LEVEL SECURITY;
+ALTER TABLE configuracion DISABLE ROW LEVEL SECURITY;
 
 -- Usuario administrador (contraseña: Admin2026)
 INSERT INTO usuarios (id, nombre_completo, correo_institucional, contrasena_hash, nivel, carrera, es_admin, creado_en)
@@ -47,27 +55,3 @@ VALUES (
     TRUE,
     '2026-05-21T00:00:00.000Z'
 ) ON CONFLICT (correo_institucional) DO NOTHING;
-
--- Datos de ejemplo: estudiante Ither Caicedo con su predicción
-INSERT INTO usuarios (id, nombre_completo, correo_institucional, contrasena_hash, nivel, carrera, es_admin, creado_en)
-VALUES (
-    'ecc98a5f-184d-43f1-affe-cc9d7755652a',
-    'Ither Eugenio Caicedo rodríguez',
-    'e1314031483@live.uleam.edu.ec',
-    '0e09af987837310b971beb1485da0987f08ca2b2cc0c306d286b9964a5b4759e',
-    '4to',
-    'Tecnología de la Información',
-    FALSE,
-    '2026-05-21T04:31:53.012Z'
-) ON CONFLICT (correo_institucional) DO NOTHING;
-
-INSERT INTO predicciones (id, usuario_id, primer_puesto, segundo_puesto, tercer_puesto, ecuador_posicion, creado_en)
-VALUES (
-    '21577ea5-2efb-484c-b041-050c71985054',
-    'ecc98a5f-184d-43f1-affe-cc9d7755652a',
-    'Ecuador',
-    'Canadá',
-    'Estados Unidos',
-    1,
-    '2026-05-21T04:41:04.680Z'
-) ON CONFLICT (usuario_id) DO NOTHING;

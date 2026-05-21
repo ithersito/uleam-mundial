@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Usuario, Prediccion, UsuarioConPrediccion } from '../types';
+import { Usuario, Prediccion, UsuarioConPrediccion, Configuracion } from '../types';
 
 // Rutas para base de datos local
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -8,6 +8,7 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 // Interface para el JSON local
 interface LocalDB {
+  configuracion: Configuracion;
   usuarios: Usuario[];
   predicciones: Prediccion[];
 }
@@ -18,7 +19,8 @@ function initLocalDB(): LocalDB {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(DB_FILE)) {
-    const defaultData: LocalDB = { usuarios: [], predicciones: [] };
+    const defaultData: LocalDB = { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [] };
+
     fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
     return defaultData;
   }
@@ -27,7 +29,7 @@ function initLocalDB(): LocalDB {
     return JSON.parse(content);
   } catch (error) {
     console.error('Error leyendo la base de datos local:', error);
-    return { usuarios: [], predicciones: [] };
+    return { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [] };
   }
 }
 
@@ -246,6 +248,42 @@ export const db = {
       ...u,
       prediccion: localDb.predicciones.find(p => p.usuarioId === u.id) ?? null,
     }));
+  },
+
+  async getConfig(): Promise<Configuracion> {
+    if (isSupabaseConfigured) {
+      try {
+        const data = await fetchSupabase('configuracion?clave=eq.predicciones_abiertas&select=valor');
+        if (data && data.length > 0) {
+          return { prediccionesAbiertas: data[0].valor === 'true' };
+        }
+      } catch (error) {
+        console.error('Error leyendo config de Supabase:', error);
+      }
+    }
+    const localDb = initLocalDB();
+    return localDb.configuracion ?? { prediccionesAbiertas: true };
+  },
+
+  async setConfig(config: Partial<Configuracion>): Promise<Configuracion> {
+    if (isSupabaseConfigured) {
+      try {
+        if (config.prediccionesAbiertas !== undefined) {
+          await fetchSupabase('configuracion?clave=eq.predicciones_abiertas', {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify({ valor: String(config.prediccionesAbiertas) }),
+          });
+        }
+        return this.getConfig();
+      } catch (error) {
+        console.error('Error guardando config en Supabase:', error);
+      }
+    }
+    const localDb = initLocalDB();
+    localDb.configuracion = { ...localDb.configuracion, ...config };
+    saveLocalDB(localDb);
+    return localDb.configuracion;
   },
 
   async createPrediction(prediction: Omit<Prediccion, 'id' | 'creadoEn'>): Promise<Prediccion> {
