@@ -142,7 +142,7 @@ function ReglasModal({ onAceptar }: { onAceptar: () => void }) {
 
 const REEL_SYMBOLS = ['🏆', '⚽', '🌍', '🎯', '🥇', '🔥', '💎', '7️⃣'];
 
-function SlotReel({ symbols, delay = 0 }: { symbols: string[]; delay?: number }) {
+function SlotReel({ symbols, delay = 0, small = false }: { symbols: string[]; delay?: number; small?: boolean }) {
   const [current, setCurrent] = useState(0);
   useEffect(() => {
     const t = setTimeout(() => {
@@ -153,7 +153,7 @@ function SlotReel({ symbols, delay = 0 }: { symbols: string[]; delay?: number })
   }, [symbols, delay]);
   return (
     <div
-      className="w-16 h-16 flex items-center justify-center text-3xl rounded-xl overflow-hidden"
+      className={`flex items-center justify-center rounded-xl overflow-hidden ${small ? 'w-12 h-12 text-2xl sm:w-16 sm:h-16 sm:text-3xl' : 'w-16 h-16 text-3xl'}`}
       style={{
         background: 'linear-gradient(180deg, #1a0030 0%, #0c001a 100%)',
         border: '2px solid rgba(255,0,128,.5)',
@@ -231,41 +231,36 @@ export default function Home() {
       {/* ── Navbar ── */}
       <header className="sticky top-0 z-30 border-b backdrop-blur-xl"
         style={{ borderColor: 'rgba(255,0,128,.2)', background: 'rgba(6,0,15,.82)' }}>
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden animate-neon-pulse-pink"
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden animate-neon-pulse-pink flex-shrink-0"
               style={{ border: '1px solid rgba(255,0,128,.6)' }}>
               <Image src="/logo-gyps.png" alt="GYPS Logo" width={40} height={40} className="object-contain" />
             </div>
-            <div>
-              <h1 className="text-sm font-black tracking-tight neon-text-pink animate-flicker">GYPS Mundial 2026</h1>
-              <p className="text-[9px] font-bold tracking-widest uppercase" style={{ color: 'rgba(0,229,255,.7)' }}>
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-sm font-black tracking-tight neon-text-pink animate-flicker leading-tight">GYPS Mundial 2026</h1>
+              <p className="text-[8px] sm:text-[9px] font-bold tracking-widest uppercase hidden xs:block" style={{ color: 'rgba(0,229,255,.7)' }}>
                 Gana Y Pasa el Semestre
               </p>
             </div>
           </div>
 
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2 flex-shrink-0">
             {loading ? (
               <Spinner size="sm" />
             ) : user ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium hidden sm:inline" style={{ color: 'rgba(0,229,255,.85)' }}>
-                  Hola, <strong className="neon-text-cyan">{user.nombreCompleto.split(' ')[0]}</strong>
-                </span>
-                <Link href="/dashboard"
-                  className="neon-btn px-5 py-2 rounded-xl text-xs flex items-center gap-1.5">
-                  Ir al Panel <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+              <Link href="/dashboard"
+                className="neon-btn px-4 py-2 rounded-xl text-xs flex items-center gap-1.5">
+                Ir al Panel <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             ) : (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <Link href="/login"
-                  className="neon-btn-secondary px-4 py-2 rounded-xl text-xs font-semibold">
+                  className="neon-btn-secondary px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap">
                   Iniciar Sesión
                 </Link>
                 <Link href="/register"
-                  className="neon-btn px-5 py-2 rounded-xl text-xs">
+                  className="neon-btn px-3 sm:px-5 py-2 rounded-xl text-xs whitespace-nowrap">
                   Registrarse
                 </Link>
               </div>
@@ -275,34 +270,34 @@ export default function Home() {
       </header>
 
       {/* ── Hero ── */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-14 md:py-22 flex flex-col items-center justify-center text-center">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-14 md:py-20 flex flex-col items-center justify-center text-center">
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8 animate-blink-border border"
+        <div className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest mb-6 animate-blink-border border"
           style={{ background: 'rgba(255,0,128,.06)', color: '#ff0080' }}>
-          <Activity className="w-3.5 h-3.5" />
+          <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           <span>🎰 Predicciones Activas — Copa 2026</span>
-          <Activity className="w-3.5 h-3.5" />
+          <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
         </div>
 
         {/* Slot machine reels */}
-        <div className="flex items-center justify-center gap-3 mb-8 p-4 rounded-2xl"
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-6 p-3 sm:p-4 rounded-2xl"
           style={{ background: 'rgba(12,0,26,.7)', border: '2px solid rgba(255,214,0,.3)', boxShadow: '0 0 20px rgba(255,214,0,.15)' }}>
           {[
             ['🏆', '⚽', '🌍', '🎯'],
             ['7️⃣', '💎', '🔥', '🥇'],
             ['⚽', '🏆', '🎯', '7️⃣'],
           ].map((syms, i) => (
-            <SlotReel key={i} symbols={syms} delay={i * 400} />
+            <SlotReel key={i} symbols={syms} delay={i * 400} small />
           ))}
-          <div className="ml-2 text-left">
-            <p className="text-[9px] font-black tracking-widest uppercase" style={{ color: 'rgba(255,214,0,.7)' }}>JACKPOT</p>
-            <p className="text-xl font-black neon-text-yellow">GYPS</p>
+          <div className="ml-1 sm:ml-2 text-left">
+            <p className="text-[8px] sm:text-[9px] font-black tracking-widest uppercase" style={{ color: 'rgba(255,214,0,.7)' }}>JACKPOT</p>
+            <p className="text-lg sm:text-xl font-black neon-text-yellow">GYPS</p>
           </div>
         </div>
 
         {/* Main heading */}
-        <h2 className="text-4xl md:text-6xl font-black tracking-tight max-w-3xl leading-[1.1] text-white">
+        <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight max-w-3xl leading-[1.1] text-white px-2">
           Predice el Podio del{' '}
           <span style={{
             backgroundImage: 'linear-gradient(90deg, #ff0080, #bf00ff, #00e5ff)',
@@ -315,29 +310,29 @@ export default function Home() {
           </span>
         </h2>
 
-        <p className="mt-6 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'rgba(240,230,255,.55)' }}>
+        <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg max-w-xl leading-relaxed px-2" style={{ color: 'rgba(240,230,255,.55)' }}>
           paaaasa el semestre yaaa{' '}
           <strong className="neon-text-cyan">Gana Y Pasa el Semestre (GYPS)</strong>.
-          Regístrate con tu correo de la u y demuestra tus conocimientos sobre el fútbol y pasa el semestre.
+          Regístrate con tu correo institucional, predice el podio y pasa el semestre.
         </p>
 
         {/* CTA Buttons */}
-        <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-sm sm:max-w-none">
           {loading ? (
             <Spinner />
           ) : user ? (
             <Link href="/dashboard"
-              className="neon-btn px-8 py-4 rounded-2xl text-sm flex items-center gap-2">
+              className="neon-btn w-full sm:w-auto px-8 py-4 rounded-2xl text-sm flex items-center justify-center gap-2">
               🎰 Ir a mi Dashboard <ArrowRight className="w-4 h-4" />
             </Link>
           ) : (
             <>
               <Link href="/register"
-                className="neon-btn px-8 py-4 rounded-2xl text-sm flex items-center gap-2">
+                className="neon-btn w-full sm:w-auto px-8 py-4 rounded-2xl text-sm flex items-center justify-center gap-2">
                 <Zap className="w-4 h-4" /> ¡Jugar Ahora! <ArrowRight className="w-4 h-4" />
               </Link>
               <Link href="/login"
-                className="neon-btn-secondary px-8 py-4 rounded-2xl text-sm">
+                className="neon-btn-secondary w-full sm:w-auto px-8 py-4 rounded-2xl text-sm text-center">
                 Tengo una cuenta
               </Link>
             </>
@@ -345,10 +340,10 @@ export default function Home() {
         </div>
 
         {/* Feature cards */}
-        <div className="mt-20 md:mt-28 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+        <div className="mt-12 sm:mt-20 md:mt-28 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full">
 
           {/* Card 1 */}
-          <div className="casino-card p-8 rounded-3xl text-left flex flex-col gap-4 hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
+          <div className="casino-card p-6 sm:p-8 rounded-3xl text-left flex flex-col gap-3 sm:gap-4 hover:-translate-y-2 transition-all duration-300"
             style={{ '--tw-shadow-color': 'rgba(0,229,255,.2)' } as any}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center animate-neon-pulse-cyan"
               style={{ background: 'rgba(0,229,255,.08)', border: '1px solid rgba(0,229,255,.4)' }}>
@@ -365,7 +360,7 @@ export default function Home() {
           </div>
 
           {/* Card 2 */}
-          <div className="casino-card p-8 rounded-3xl text-left flex flex-col gap-4 hover:-translate-y-2 hover:shadow-xl transition-all duration-300">
+          <div className="casino-card p-6 sm:p-8 rounded-3xl text-left flex flex-col gap-3 sm:gap-4 hover:-translate-y-2 transition-all duration-300">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center animate-neon-pulse-yellow"
               style={{ background: 'rgba(255,214,0,.08)', border: '1px solid rgba(255,214,0,.4)' }}>
               <ShieldCheck className="w-6 h-6" style={{ color: '#ffd600' }} />
@@ -378,7 +373,7 @@ export default function Home() {
           </div>
 
           {/* Card 3 */}
-          <div className="casino-card p-8 rounded-3xl text-left flex flex-col gap-4 hover:-translate-y-2 hover:shadow-xl transition-all duration-300">
+          <div className="casino-card p-6 sm:p-8 rounded-3xl text-left flex flex-col gap-3 sm:gap-4 hover:-translate-y-2 transition-all duration-300">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center animate-neon-pulse-pink"
               style={{ background: 'rgba(255,0,128,.08)', border: '1px solid rgba(255,0,128,.4)' }}>
               <Calendar className="w-6 h-6" style={{ color: '#ff0080' }} />
