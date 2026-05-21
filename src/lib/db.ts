@@ -98,6 +98,7 @@ export const db = {
           contrasenaHash: u.contrasena_hash,
           nivel: u.nivel,
           carrera: u.carrera,
+          esAdmin: u.es_admin ?? false,
           creadoEn: u.creado_en,
         };
       } catch (error) {
@@ -116,7 +117,7 @@ export const db = {
       try {
         const data = await fetchSupabase(`usuarios?id=eq.${id}&select=*`);
         if (!data || data.length === 0) return null;
-        
+
         const u = data[0];
         return {
           id: u.id,
@@ -125,6 +126,7 @@ export const db = {
           contrasenaHash: u.contrasena_hash,
           nivel: u.nivel,
           carrera: u.carrera,
+          esAdmin: u.es_admin ?? false,
           creadoEn: u.creado_en,
         };
       } catch (error) {
@@ -161,6 +163,7 @@ export const db = {
             contrasena_hash: user.contrasenaHash,
             nivel: user.nivel,
             carrera: user.carrera,
+            es_admin: user.esAdmin ?? false,
             creado_en: creadoEn,
           }),
         });
@@ -207,6 +210,37 @@ export const db = {
   },
 
   async getAllUsersWithPredictions(): Promise<UsuarioConPrediccion[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const [usuarios, predicciones] = await Promise.all([
+          fetchSupabase('usuarios?select=id,nombre_completo,correo_institucional,nivel,carrera,es_admin,creado_en'),
+          fetchSupabase('predicciones?select=*'),
+        ]);
+        return (usuarios ?? []).map((u: any) => ({
+          id: u.id,
+          nombreCompleto: u.nombre_completo,
+          correoInstitucional: u.correo_institucional,
+          nivel: u.nivel,
+          carrera: u.carrera,
+          esAdmin: u.es_admin ?? false,
+          creadoEn: u.creado_en,
+          prediccion: (predicciones ?? []).find((p: any) => p.usuario_id === u.id)
+            ? {
+                id: predicciones.find((p: any) => p.usuario_id === u.id).id,
+                usuarioId: u.id,
+                primerPuesto: predicciones.find((p: any) => p.usuario_id === u.id).primer_puesto,
+                segundoPuesto: predicciones.find((p: any) => p.usuario_id === u.id).segundo_puesto,
+                tercerPuesto: predicciones.find((p: any) => p.usuario_id === u.id).tercer_puesto,
+                ecuadorPosicion: predicciones.find((p: any) => p.usuario_id === u.id).ecuador_posicion,
+                creadoEn: predicciones.find((p: any) => p.usuario_id === u.id).creado_en,
+              }
+            : null,
+        }));
+      } catch (error) {
+        console.error('Error obteniendo usuarios de Supabase, usando fallback local...', error);
+      }
+    }
+
     const localDb = initLocalDB();
     return localDb.usuarios.map(({ contrasenaHash: _, ...u }) => ({
       ...u,
