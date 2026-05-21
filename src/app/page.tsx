@@ -316,9 +316,9 @@ export default function Home() {
         </h2>
 
         <p className="mt-6 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'rgba(240,230,255,.55)' }}>
-          Diseñado exclusivamente para el proyecto{' '}
+          paaaasa el semestre yaaa{' '}
           <strong className="neon-text-cyan">Gana Y Pasa el Semestre (GYPS)</strong>.
-          Regístrate con tu correo institucional y demuestra tus conocimientos sobre el fútbol internacional.
+          Regístrate con tu correo de la u y demuestra tus conocimientos sobre el fútbol y pasa el semestre.
         </p>
 
         {/* CTA Buttons */}
@@ -397,7 +397,7 @@ export default function Home() {
       <footer className="py-6 border-t text-center text-[11px] font-semibold tracking-wide"
         style={{ borderColor: 'rgba(255,0,128,.15)', background: 'rgba(6,0,15,.7)', color: 'rgba(240,230,255,.35)' }}>
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p>© {new Date().getFullYear()} <span className="neon-text-pink">GYPS</span> — Gana Y Pasa el Semestre · Todos los derechos reservados.</p>
+          <p>© 2026 <span className="neon-text-pink">GYPS</span> — Gana Y Pasa el Semestre · <span style={{ color: 'rgba(0,229,255,.5)' }}>Ither estuvo aqui.</span></p>
           <div className="flex items-center gap-4">
             <span style={{ color: 'rgba(0,229,255,.5)' }}>Tecnología de la Información</span>
             <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(255,0,128,.5)' }} />
