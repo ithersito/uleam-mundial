@@ -1,4 +1,4 @@
--- Esquema de Base de Datos para Predicciones del Mundial de Fútbol 2026 (ULEAM)
+-- Esquema de Base de Datos para Predicciones del Mundial de Fútbol 2026 (GYPS - Gana Y Pasa el Semestre)
 -- Diseñado para Supabase o PostgreSQL
 
 -- Habilitar extensión UUID si no está habilitada

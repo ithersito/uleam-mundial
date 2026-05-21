@@ -215,7 +215,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-sm font-bold tracking-tight text-neutral-900 dark:text-white">Panel de Predicciones</h1>
-              <p className="text-[9px] text-neutral-500 font-medium tracking-wider uppercase">ULEAM Mundial 2026</p>
+              <p className="text-[9px] text-neutral-500 font-medium tracking-wider uppercase">GYPS Mundial 2026</p>
             </div>
           </div>
 

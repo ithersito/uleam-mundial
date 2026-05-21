@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Polla Mundial 2026 - ULEAM",
-  description: "Sistema Universitario de Predicciones del Mundial de Fútbol 2026",
+  title: "GYPS - Gana Y Pasa el Semestre",
+  description: "GYPS - Sistema de Predicciones del Mundial de Fútbol 2026",
 };
 
 export default function RootLayout({

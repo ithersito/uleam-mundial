@@ -41,8 +41,8 @@ export default function Home() {
               <Trophy className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight text-uleam-green-dark dark:text-emerald-400">ULEAM Mundial 2026</h1>
-              <p className="text-[10px] text-neutral-500 font-medium tracking-wider uppercase">Facultad de Ciencias Informáticas</p>
+              <h1 className="text-base font-bold tracking-tight text-uleam-green-dark dark:text-emerald-400">GYPS Mundial 2026</h1>
+              <p className="text-[10px] text-neutral-500 font-medium tracking-wider uppercase">Gana Y Pasa el Semestre</p>
             </div>
           </div>
 
@@ -84,7 +84,7 @@ export default function Home() {
       {/* Hero Section */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center justify-center text-center">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-uleam-green-medium/20 bg-uleam-green-soft text-uleam-green-primary dark:bg-emerald-950/30 dark:text-emerald-400 text-xs font-semibold mb-6 animate-bounce">
-          <Activity className="w-3.5 h-3.5" /> Proyecto Universitario del Mundial 2026
+          <Activity className="w-3.5 h-3.5" /> GYPS - Gana Y Pasa el Semestre
         </div>
 
         <h2 className="text-4xl md:text-6xl font-black tracking-tight max-w-3xl leading-[1.15] text-neutral-900 dark:text-white">
@@ -92,7 +92,7 @@ export default function Home() {
         </h2>
 
         <p className="mt-6 text-base md:text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-          Diseñado exclusivamente para la comunidad estudiantil de <strong className="text-uleam-green-primary dark:text-emerald-400 font-semibold">ULEAM</strong>. Regístrate con tu correo institucional y demuestra tus conocimientos sobre el fútbol internacional.
+          Diseñado exclusivamente para el proyecto <strong className="text-uleam-green-primary dark:text-emerald-400 font-semibold">Gana Y Pasa el Semestre (GYPS)</strong>. Regístrate con tu correo institucional y demuestra tus conocimientos sobre el fútbol internacional.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -165,7 +165,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-neutral-200/60 dark:border-neutral-800/50 py-8 bg-white/50 dark:bg-neutral-950 text-center text-xs text-neutral-500 font-medium">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} Universidad Laica Eloy Alfaro de Manabí. Todos los derechos reservados.</p>
+          <p>© {new Date().getFullYear()} GYPS - Gana Y Pasa el Semestre. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <span className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Tecnología de la Información</span>
             <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700" />
