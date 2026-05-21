@@ -38,10 +38,12 @@ export async function POST(request: Request) {
       id: usuario.id,
       email: usuario.correoInstitucional,
       nombre: usuario.nombreCompleto,
+      esAdmin: usuario.esAdmin ?? false,
     });
 
     const response = NextResponse.json({
       message: 'Inicio de sesión exitoso.',
+      esAdmin: usuario.esAdmin ?? false,
       usuario: {
         id: usuario.id,
         nombreCompleto: usuario.nombreCompleto,

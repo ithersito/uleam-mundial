@@ -15,16 +15,27 @@ export async function middleware(request: NextRequest) {
   // Definir tipos de rutas
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
   const isProtectedRoute = pathname.startsWith('/dashboard');
+  const isAdminRoute = pathname.startsWith('/admin');
 
   // Caso 1: Ruta protegida y el usuario no está autenticado
   if (isProtectedRoute && !user) {
     const loginUrl = new URL('/login', request.url);
-    // Guardar la URL original para redirigir después del login
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Caso 2: Ruta de login/registro y el usuario ya está autenticado
+  // Caso 1b: Admin intenta entrar al dashboard → redirigir a /admin
+  if (isProtectedRoute && user?.esAdmin) {
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+
+  // Caso 2: Ruta admin — requiere autenticación y rol admin
+  if (isAdminRoute) {
+    if (!user) return NextResponse.redirect(new URL('/login', request.url));
+    if (!user.esAdmin) return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Caso 3: Ruta de login/registro y el usuario ya está autenticado
   if (isAuthRoute && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
@@ -37,6 +48,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/admin/:path*',
+    '/admin',
     '/login',
     '/register',
   ],

@@ -34,7 +34,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 /**
  * Crea y firma un JWT para el usuario.
  */
-export async function signJWT(payload: { id: string; email: string; nombre: string }) {
+export async function signJWT(payload: { id: string; email: string; nombre: string; esAdmin?: boolean }) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -48,7 +48,7 @@ export async function signJWT(payload: { id: string; email: string; nombre: stri
 export async function verifyJWT(token: string) {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as { id: string; email: string; nombre: string };
+    return payload as { id: string; email: string; nombre: string; esAdmin?: boolean };
   } catch (error) {
     return null;
   }

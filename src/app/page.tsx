@@ -3,8 +3,142 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck, UserCheck, Calendar, ArrowRight, Activity, Zap } from 'lucide-react';
+import { ShieldCheck, UserCheck, Calendar, ArrowRight, Activity, Zap, ScrollText, CheckCircle2, XCircle, Trophy, Flag, AlertTriangle } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+
+const REGLAS = [
+  {
+    icon: Trophy,
+    color: '#ffd600',
+    titulo: 'Predice el Podio',
+    texto: 'Debes elegir el campeón (1°), subcampeón (2°) y tercer lugar (3°) del Mundial. Los tres países deben ser distintos.',
+  },
+  {
+    icon: Flag,
+    color: '#39ff14',
+    titulo: 'Posición Final de Ecuador',
+    texto: 'Además del podio, debes indicar en qué puesto quedará Ecuador al finalizar el torneo. El rango válido es del 1 al 48.',
+  },
+  {
+    icon: XCircle,
+    color: '#ff0080',
+    titulo: 'Una Sola Apuesta — Sin Ediciones',
+    texto: 'Cada estudiante tiene exactamente UNA oportunidad de enviar su predicción. Una vez confirmada, es DEFINITIVA e irrevocable. No hay correcciones.',
+  },
+  {
+    icon: ShieldCheck,
+    color: '#00e5ff',
+    titulo: 'Acceso Exclusivo ULEAM',
+    texto: 'Solo se aceptan correos institucionales con formato e1234567890@live.uleam.edu.ec. Correos inválidos serán rechazados automáticamente.',
+  },
+  {
+    icon: AlertTriangle,
+    color: '#ff6d00',
+    titulo: 'Fecha y Hora Oficial',
+    texto: 'El sistema registra la fecha y hora del servidor al momento del envío. Esta marca temporal es la oficial e inapelable para cualquier evaluación.',
+  },
+];
+
+function ReglasModal({ onAceptar }: { onAceptar: () => void }) {
+  const [leido, setLeido] = useState(false);
+  const [scrollado, setScrollado] = useState(false);
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40) {
+      setScrollado(true);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(6,0,15,.92)', backdropFilter: 'blur(8px)' }}>
+
+      <div className="w-full max-w-lg rounded-3xl overflow-hidden"
+        style={{ border: '1px solid rgba(255,214,0,.4)', boxShadow: '0 0 60px rgba(255,214,0,.15), 0 0 120px rgba(255,0,128,.1)' }}>
+
+        {/* Header */}
+        <div className="px-6 py-5 flex items-center gap-3"
+          style={{ background: 'linear-gradient(135deg, rgba(255,214,0,.08), rgba(255,0,128,.05))', borderBottom: '1px solid rgba(255,214,0,.2)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,214,0,.12)', border: '1px solid rgba(255,214,0,.4)' }}>
+            <ScrollText className="w-5 h-5" style={{ color: '#ffd600' }} />
+          </div>
+          <div>
+            <h2 className="text-base font-black tracking-tight" style={{ color: '#ffd600' }}>
+              ⚠️ Reglas Oficiales del Torneo
+            </h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(240,230,255,.4)' }}>
+              Lee completamente antes de participar
+            </p>
+          </div>
+        </div>
+
+        {/* Scrollable rules */}
+        <div onScroll={handleScroll}
+          className="overflow-y-auto max-h-[50vh] px-6 py-4 space-y-4"
+          style={{ background: 'rgba(12,0,26,.8)' }}>
+          {REGLAS.map(({ icon: Icon, color, titulo, texto }) => (
+            <div key={titulo} className="flex gap-4 p-4 rounded-2xl"
+              style={{ background: `${color}08`, border: `1px solid ${color}20` }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{ background: `${color}15`, border: `1px solid ${color}35` }}>
+                <Icon className="w-4 h-4" style={{ color }} />
+              </div>
+              <div>
+                <p className="text-xs font-black mb-1" style={{ color }}>{titulo}</p>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(240,230,255,.65)' }}>{texto}</p>
+              </div>
+            </div>
+          ))}
+          <div className="h-2" />
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-5 space-y-4"
+          style={{ background: 'rgba(6,0,15,.9)', borderTop: '1px solid rgba(255,214,0,.15)' }}>
+
+          {!scrollado && (
+            <p className="text-center text-[10px] font-bold uppercase tracking-widest animate-pulse"
+              style={{ color: 'rgba(255,214,0,.5)' }}>
+              ↓ Desplázate para leer todas las reglas
+            </p>
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div onClick={() => scrollado && setLeido(p => !p)}
+              className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+              style={{
+                background: leido ? 'rgba(57,255,20,.2)' : 'rgba(255,255,255,.05)',
+                border: `1px solid ${leido ? '#39ff14' : 'rgba(255,255,255,.15)'}`,
+                cursor: scrollado ? 'pointer' : 'not-allowed',
+                opacity: scrollado ? 1 : 0.4,
+              }}>
+              {leido && <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#39ff14' }} />}
+            </div>
+            <span className="text-xs leading-relaxed" style={{ color: scrollado ? 'rgba(240,230,255,.7)' : 'rgba(240,230,255,.3)' }}>
+              He leído y entiendo todas las reglas del torneo. Comprendo que mi predicción será <strong className="text-white">definitiva e irrevocable</strong> una vez enviada.
+            </span>
+          </label>
+
+          <button
+            onClick={onAceptar}
+            disabled={!leido}
+            className="w-full py-3.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all active:scale-95"
+            style={{
+              background: leido ? 'linear-gradient(135deg, #ff0080, #bf00ff)' : 'rgba(255,255,255,.05)',
+              color: leido ? '#fff' : 'rgba(240,230,255,.25)',
+              boxShadow: leido ? '0 0 20px rgba(255,0,128,.4)' : 'none',
+              cursor: leido ? 'pointer' : 'not-allowed',
+              border: leido ? 'none' : '1px solid rgba(255,255,255,.1)',
+            }}>
+            ✅ Entendido — Quiero Participar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const REEL_SYMBOLS = ['🏆', '⚽', '🌍', '🎯', '🥇', '🔥', '💎', '7️⃣'];
 
@@ -35,6 +169,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tickerStep, setTickerStep] = useState(0);
+  const [mostrarReglas, setMostrarReglas] = useState(false);
 
   const TICKER_ITEMS = [
     '🎰 GYPS MUNDIAL 2026',
@@ -59,12 +194,21 @@ export default function Home() {
       }
     }
     checkAuth();
+    const aceptado = localStorage.getItem('gyps_reglas_aceptadas');
+    if (!aceptado) setMostrarReglas(true);
     const tickerId = setInterval(() => setTickerStep(p => (p + 1) % TICKER_ITEMS.length), 2500);
     return () => clearInterval(tickerId);
   }, []);
 
+  function handleAceptarReglas() {
+    localStorage.setItem('gyps_reglas_aceptadas', '1');
+    setMostrarReglas(false);
+  }
+
   return (
     <div className="flex-1 flex flex-col relative overflow-hidden font-sans">
+
+      {mostrarReglas && <ReglasModal onAceptar={handleAceptarReglas} />}
 
       {/* ── Ambient glow blobs ── */}
       <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] rounded-full pointer-events-none -z-10"

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Usuario, Prediccion } from '../types';
+import { Usuario, Prediccion, UsuarioConPrediccion } from '../types';
 
 // Rutas para base de datos local
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -204,6 +204,14 @@ export const db = {
     const localDb = initLocalDB();
     const prediction = localDb.predicciones.find(p => p.usuarioId === userId);
     return prediction || null;
+  },
+
+  async getAllUsersWithPredictions(): Promise<UsuarioConPrediccion[]> {
+    const localDb = initLocalDB();
+    return localDb.usuarios.map(({ contrasenaHash: _, ...u }) => ({
+      ...u,
+      prediccion: localDb.predicciones.find(p => p.usuarioId === u.id) ?? null,
+    }));
   },
 
   async createPrediction(prediction: Omit<Prediccion, 'id' | 'creadoEn'>): Promise<Prediccion> {

@@ -6,6 +6,11 @@ export interface Usuario {
   nivel: '1ro' | '2do' | '3ro' | '4to' | '5to' | '6to' | '7mo' | '8vo';
   carrera: 'Tecnología de la Información' | 'Ingeniería en Software';
   creadoEn: string;
+  esAdmin?: boolean;
+}
+
+export interface UsuarioConPrediccion extends Omit<Usuario, 'contrasenaHash'> {
+  prediccion: Prediccion | null;
 }
 
 export interface Prediccion {

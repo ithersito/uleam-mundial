@@ -48,7 +48,7 @@ export default function Login() {
         showToast(data.error || 'Ocurrió un error al iniciar sesión.', 'error');
       } else {
         showToast('¡Sesión iniciada con éxito! 🎰 Redirigiendo...', 'success');
-        router.push('/dashboard');
+        router.push(data.esAdmin ? '/admin' : '/dashboard');
         router.refresh();
       }
     } catch (err) {
