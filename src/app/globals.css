@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #06000f;
+  --foreground: #f0e6ff;
+
+  /* Neon Casino Palette */
+  --neon-pink:    #ff0080;
+  --neon-pink-glow: rgba(255, 0, 128, 0.65);
+  --neon-cyan:    #00e5ff;
+  --neon-cyan-glow: rgba(0, 229, 255, 0.65);
+  --neon-yellow:  #ffd600;
+  --neon-yellow-glow: rgba(255, 214, 0, 0.65);
+  --neon-purple:  #bf00ff;
+  --neon-purple-glow: rgba(191, 0, 255, 0.65);
+  --neon-green:   #39ff14;
+  --neon-green-glow: rgba(57, 255, 20, 0.65);
+  --neon-orange:  #ff6d00;
+  --neon-orange-glow: rgba(255, 109, 0, 0.65);
+  --casino-card:  rgba(12, 0, 26, 0.92);
 }
 
 @theme inline {
@@ -10,31 +25,242 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
-  /* ULEAM Color System */
-  --color-uleam-green-dark: #092e1b;
+
+  /* Neon tokens */
+  --color-neon-pink:   #ff0080;
+  --color-neon-cyan:   #00e5ff;
+  --color-neon-yellow: #ffd600;
+  --color-neon-purple: #bf00ff;
+  --color-neon-green:  #39ff14;
+  --color-neon-orange: #ff6d00;
+  --color-casino-dark: #06000f;
+  --color-casino-card: #0c001a;
+  --color-casino-border:#2a0050;
+
+  /* Legacy ULEAM tokens kept for server-side code */
+  --color-uleam-green-dark:    #092e1b;
   --color-uleam-green-primary: #124d2d;
-  --color-uleam-green-medium: #1c7c47;
-  --color-uleam-green-light: #2dbe6c;
-  --color-uleam-green-soft: #eaf6ee;
-  
-  --color-uleam-red-dark: #580a0a;
-  --color-uleam-red-primary: #8d1919;
-  --color-uleam-red-light: #dc2626;
-  
-  --color-uleam-gold-dark: #8c6b12;
-  --color-uleam-gold-primary: #c29928;
-  --color-uleam-gold-light: #f1c40f;
-  --color-uleam-gold-soft: #fef9e7;
+  --color-uleam-green-medium:  #1c7c47;
+  --color-uleam-green-light:   #2dbe6c;
+  --color-uleam-green-soft:    #eaf6ee;
+  --color-uleam-red-dark:      #580a0a;
+  --color-uleam-red-primary:   #8d1919;
+  --color-uleam-red-light:     #dc2626;
+  --color-uleam-gold-dark:     #8c6b12;
+  --color-uleam-gold-primary:  #c29928;
+  --color-uleam-gold-light:    #f1c40f;
+  --color-uleam-gold-soft:     #fef9e7;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ───────────────────────── Keyframes ───────────────────────── */
+
+@keyframes neon-flicker {
+  0%,18%,20%,50%,52%,100% { opacity: 1; }
+  19%,51% { opacity: 0.35; }
+}
+
+@keyframes neon-pulse-pink {
+  0%,100% {
+    box-shadow: 0 0 6px var(--neon-pink), 0 0 14px var(--neon-pink),
+                0 0 30px var(--neon-pink-glow), inset 0 0 6px rgba(255,0,128,.08);
+  }
+  50% {
+    box-shadow: 0 0 12px var(--neon-pink), 0 0 30px var(--neon-pink),
+                0 0 60px var(--neon-pink-glow), inset 0 0 14px rgba(255,0,128,.18);
   }
 }
 
+@keyframes neon-pulse-cyan {
+  0%,100% { box-shadow: 0 0 6px var(--neon-cyan), 0 0 14px var(--neon-cyan), 0 0 30px var(--neon-cyan-glow); }
+  50%      { box-shadow: 0 0 14px var(--neon-cyan), 0 0 30px var(--neon-cyan), 0 0 60px var(--neon-cyan-glow); }
+}
+
+@keyframes neon-pulse-yellow {
+  0%,100% { box-shadow: 0 0 6px var(--neon-yellow), 0 0 14px var(--neon-yellow), 0 0 30px var(--neon-yellow-glow); }
+  50%      { box-shadow: 0 0 14px var(--neon-yellow), 0 0 30px var(--neon-yellow), 0 0 60px var(--neon-yellow-glow); }
+}
+
+@keyframes float-up {
+  0%,100% { transform: translateY(0)   rotate(0deg); }
+  50%      { transform: translateY(-14px) rotate(2deg); }
+}
+
+@keyframes blink-border {
+  0%,100% { border-color: var(--neon-pink);   box-shadow: 0 0 8px var(--neon-pink); }
+  33%      { border-color: var(--neon-cyan);   box-shadow: 0 0 8px var(--neon-cyan); }
+  66%      { border-color: var(--neon-yellow); box-shadow: 0 0 8px var(--neon-yellow); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes marquee-coins {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes reel-drop {
+  0%   { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+
+/* ───────────────────────── Neon Utility Classes ───────────────────────── */
+
+.neon-text-pink {
+  color: var(--neon-pink);
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--neon-pink), 0 0 30px var(--neon-pink), 0 0 60px var(--neon-pink);
+}
+.neon-text-cyan {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--neon-cyan), 0 0 30px var(--neon-cyan), 0 0 60px var(--neon-cyan);
+}
+.neon-text-yellow {
+  color: var(--neon-yellow);
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--neon-yellow), 0 0 30px var(--neon-yellow), 0 0 60px var(--neon-yellow);
+}
+.neon-text-green {
+  color: var(--neon-green);
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--neon-green), 0 0 30px var(--neon-green);
+}
+.neon-text-purple {
+  color: var(--neon-purple);
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--neon-purple), 0 0 30px var(--neon-purple);
+}
+.neon-text-orange {
+  color: var(--neon-orange);
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--neon-orange), 0 0 30px var(--neon-orange);
+}
+
+.neon-border-pink  { border-color: var(--neon-pink);   box-shadow: 0 0 8px var(--neon-pink),   0 0 16px var(--neon-pink-glow),   inset 0 0 6px rgba(255,0,128,.06); }
+.neon-border-cyan  { border-color: var(--neon-cyan);   box-shadow: 0 0 8px var(--neon-cyan),   0 0 16px var(--neon-cyan-glow),   inset 0 0 6px rgba(0,229,255,.06); }
+.neon-border-yellow{ border-color: var(--neon-yellow); box-shadow: 0 0 8px var(--neon-yellow), 0 0 16px var(--neon-yellow-glow), inset 0 0 6px rgba(255,214,0,.06); }
+.neon-border-green { border-color: var(--neon-green);  box-shadow: 0 0 8px var(--neon-green),  0 0 16px var(--neon-green-glow),  inset 0 0 6px rgba(57,255,20,.06); }
+.neon-border-purple{ border-color: var(--neon-purple); box-shadow: 0 0 8px var(--neon-purple), 0 0 16px var(--neon-purple-glow), inset 0 0 6px rgba(191,0,255,.06); }
+
+/* Primary CTA button – neon pink */
+.neon-btn {
+  position: relative;
+  background: linear-gradient(135deg, #5c0038, #b8005a, #ff0080);
+  border: 1px solid var(--neon-pink);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-shadow: 0 0 8px rgba(255,255,255,.7);
+  box-shadow: 0 0 10px var(--neon-pink), 0 0 24px var(--neon-pink-glow), inset 0 0 10px rgba(255,0,128,.08);
+  transition: all .3s ease;
+  overflow: hidden;
+}
+.neon-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.08) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform .5s ease;
+}
+.neon-btn:hover::after { transform: translateX(100%); }
+.neon-btn:hover {
+  box-shadow: 0 0 20px var(--neon-pink), 0 0 50px var(--neon-pink-glow);
+  transform: translateY(-2px) scale(1.01);
+}
+.neon-btn:active { transform: translateY(0) scale(.98); }
+
+/* Secondary button – neon cyan */
+.neon-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(0,229,255,.5);
+  box-shadow: 0 0 6px var(--neon-cyan), 0 0 14px var(--neon-cyan-glow), inset 0 0 6px rgba(0,229,255,.04);
+  transition: all .3s ease;
+}
+.neon-btn-secondary:hover {
+  background: rgba(0,229,255,.08);
+  box-shadow: 0 0 14px var(--neon-cyan), 0 0 30px var(--neon-cyan-glow);
+  transform: translateY(-2px);
+}
+
+/* Casino card */
+.casino-card {
+  background: linear-gradient(135deg, rgba(12,0,26,.96), rgba(25,0,55,.92));
+  border: 1px solid rgba(255,0,128,.28);
+  backdrop-filter: blur(24px);
+  box-shadow:
+    0 0 24px rgba(255,0,128,.08),
+    0 0 50px rgba(191,0,255,.04),
+    inset 0 0 30px rgba(255,0,128,.02);
+}
+
+/* Casino input */
+.casino-input {
+  background: rgba(6,0,15,.85);
+  border: 1px solid rgba(255,0,128,.3);
+  color: #fff;
+  transition: all .3s ease;
+}
+.casino-input::placeholder { color: rgba(255,255,255,.3); }
+.casino-input:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0,229,255,.35), inset 0 0 10px rgba(0,229,255,.05);
+  outline: none;
+}
+.casino-input:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Casino select */
+.casino-select {
+  background: rgba(6,0,15,.85);
+  border: 1px solid rgba(255,0,128,.3);
+  color: #fff;
+  appearance: none;
+  transition: all .3s ease;
+}
+.casino-select:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0,229,255,.35);
+  outline: none;
+}
+.casino-select option { background: #0c001a; color: #fff; }
+.casino-select optgroup { background: #0c001a; color: var(--neon-cyan); }
+
+/* Grid background */
+.casino-grid-bg {
+  background-image:
+    linear-gradient(rgba(255,0,128,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,0,128,.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Scanlines overlay */
+.scanlines::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,.06) 3px,
+    rgba(0,0,0,.06) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Animation helpers */
+.animate-neon-pulse-pink   { animation: neon-pulse-pink   2s ease-in-out infinite; }
+.animate-neon-pulse-cyan   { animation: neon-pulse-cyan   2s ease-in-out infinite; }
+.animate-neon-pulse-yellow { animation: neon-pulse-yellow 2s ease-in-out infinite; }
+.animate-flicker           { animation: neon-flicker      3.5s ease-in-out infinite; }
+.animate-float-up          { animation: float-up          4s ease-in-out infinite; }
+.animate-blink-border      { animation: blink-border      3s ease-in-out infinite; }
+.animate-spin-slow         { animation: spin-slow         8s linear infinite; }
+.animate-marquee-coins     { animation: marquee-coins     18s linear infinite; }
+.animate-reel-drop         { animation: reel-drop         .4s ease-out forwards; }
+
+/* ───── Global base ───── */
 body {
   background: var(--background);
   color: var(--foreground);

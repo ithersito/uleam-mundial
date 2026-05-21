@@ -14,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GYPS - Gana Y Pasa el Semestre",
-  description: "GYPS - Sistema de Predicciones del Mundial de Fútbol 2026",
+  title: "GYPS 🎰 – Gana Y Pasa el Semestre",
+  description: "GYPS – Sistema de Predicciones del Mundial de Fútbol 2026. ¡Haz tu jugada!",
+  icons: {
+    icon: "/logo-gyps.png",
+    apple: "/logo-gyps.png",
+  },
 };
 
 export default function RootLayout({
@@ -28,7 +32,7 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50">
+      <body className="min-h-full flex flex-col bg-casino-dark text-foreground scanlines casino-grid-bg">
         <ToastProvider>
           {children}
         </ToastProvider>

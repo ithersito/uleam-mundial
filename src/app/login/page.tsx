@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Trophy, Mail, Lock, LogIn, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, LogIn, ArrowLeft, Zap } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { validateUleamEmail } from '@/lib/auth';
@@ -26,34 +27,27 @@ export default function Login() {
     e.preventDefault();
     const { correoInstitucional, contrasena } = formData;
 
-    // 1. Validar campos
     if (!correoInstitucional || !contrasena) {
       showToast('Por favor, completa todos los campos.', 'error');
       return;
     }
-
-    // 2. Validar formato correo
     if (!validateUleamEmail(correoInstitucional)) {
       showToast('El formato del correo debe ser: e1234567890@live.uleam.edu.ec', 'error');
       return;
     }
 
     setLoading(true);
-
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correoInstitucional, contrasena }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         showToast(data.error || 'Ocurrió un error al iniciar sesión.', 'error');
       } else {
-        showToast('¡Sesión iniciada con éxito! Redirigiendo...', 'success');
-        // Redirigir al panel principal
+        showToast('¡Sesión iniciada con éxito! 🎰 Redirigiendo...', 'success');
         router.push('/dashboard');
         router.refresh();
       }
@@ -66,48 +60,54 @@ export default function Login() {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative min-h-screen bg-neutral-50 dark:bg-neutral-950 font-sans">
-      
-      {/* Decorative Blur Background */}
-      <div className="absolute top-[20%] left-[20%] w-[350px] h-[350px] rounded-full bg-uleam-green-soft/40 dark:bg-uleam-green-dark/15 blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] rounded-full bg-red-50/20 dark:bg-uleam-red-dark/5 blur-3xl pointer-events-none -z-10" />
+    <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative min-h-screen font-sans">
 
-      {/* Back Button */}
-      <Link
-        href="/"
-        className="absolute top-8 left-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-uleam-green-primary dark:text-neutral-400 dark:hover:text-emerald-400 transition-colors"
-      >
+      {/* Ambient blobs */}
+      <div className="absolute top-[15%] left-[15%] w-[400px] h-[400px] rounded-full pointer-events-none -z-10"
+        style={{ background: 'radial-gradient(circle, rgba(255,0,128,.14) 0%, transparent 70%)' }} />
+      <div className="absolute bottom-[15%] right-[15%] w-[300px] h-[300px] rounded-full pointer-events-none -z-10"
+        style={{ background: 'radial-gradient(circle, rgba(191,0,255,.1) 0%, transparent 70%)' }} />
+
+      {/* Back button */}
+      <Link href="/"
+        className="absolute top-8 left-8 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105"
+        style={{ color: 'rgba(0,229,255,.7)' }}>
         <ArrowLeft className="w-4 h-4" /> Volver al Inicio
       </Link>
 
       <div className="w-full max-w-md">
-        
-        {/* Logo Card */}
+
+        {/* Logo header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-uleam-green-primary to-uleam-green-medium flex items-center justify-center text-white shadow-lg shadow-uleam-green-primary/20 mb-3">
-            <Trophy className="w-7 h-7" />
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mb-4 animate-neon-pulse-pink"
+            style={{ border: '2px solid rgba(255,0,128,.6)', boxShadow: '0 0 20px rgba(255,0,128,.4)' }}>
+            <Image src="/logo-gyps.png" alt="GYPS Logo" width={64} height={64} className="object-contain" />
           </div>
-          <h2 className="text-2xl font-black text-neutral-900 dark:text-white text-center">Inicia Sesión</h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center font-medium mt-1 uppercase tracking-wider">
-            Predicciones Copa Mundial 2026
+          <h2 className="text-3xl font-black text-white tracking-tight">
+            <span className="neon-text-pink animate-flicker">INICIA</span>{' '}
+            <span className="neon-text-cyan">SESIÓN</span>
+          </h2>
+          <p className="text-[10px] font-bold tracking-widest uppercase mt-2"
+            style={{ color: 'rgba(255,214,0,.6)' }}>
+            🎰 Predicciones Copa Mundial 2026
           </p>
         </div>
 
-        {/* Form Card */}
-        <div className="p-8 rounded-3xl border border-neutral-200/60 bg-white/70 backdrop-blur-md shadow-xl dark:bg-neutral-900/65 dark:border-neutral-800/50">
+        {/* Form card */}
+        <div className="casino-card p-8 rounded-3xl">
           <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Email Field */}
+
+            {/* Email */}
             <div className="space-y-2">
-              <label
-                htmlFor="correoInstitucional"
-                className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-              >
+              <label htmlFor="correoInstitucional"
+                className="text-[10px] font-black uppercase tracking-widest block"
+                style={{ color: 'rgba(0,229,255,.8)' }}>
                 Correo Institucional
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                  <Mail className="w-4.5 h-4.5" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
+                  style={{ color: 'rgba(255,0,128,.6)' }}>
+                  <Mail className="w-4 h-4" />
                 </div>
                 <input
                   id="correoInstitucional"
@@ -118,27 +118,25 @@ export default function Login() {
                   value={formData.correoInstitucional}
                   onChange={handleChange}
                   disabled={loading}
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all disabled:opacity-50"
+                  className="casino-input w-full pl-11 pr-4 py-3.5 rounded-xl text-sm"
                 />
               </div>
-              <p className="text-[10px] text-neutral-400 font-medium leading-tight">
+              <p className="text-[10px] font-medium" style={{ color: 'rgba(240,230,255,.35)' }}>
                 * Debe empezar por "e", contener números y terminar en @live.uleam.edu.ec
               </p>
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label
-                  htmlFor="contrasena"
-                  className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-                >
-                  Contraseña
-                </label>
-              </div>
+              <label htmlFor="contrasena"
+                className="text-[10px] font-black uppercase tracking-widest block"
+                style={{ color: 'rgba(0,229,255,.8)' }}>
+                Contraseña
+              </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                  <Lock className="w-4.5 h-4.5" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
+                  style={{ color: 'rgba(255,0,128,.6)' }}>
+                  <Lock className="w-4 h-4" />
                 </div>
                 <input
                   id="contrasena"
@@ -149,42 +147,34 @@ export default function Login() {
                   value={formData.contrasena}
                   onChange={handleChange}
                   disabled={loading}
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all disabled:opacity-50"
+                  className="casino-input w-full pl-11 pr-4 py-3.5 rounded-xl text-sm"
                 />
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
+              id="login-submit-btn"
               disabled={loading}
-              className="w-full py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-uleam-green-primary via-uleam-green-medium to-uleam-green-light hover:brightness-110 active:scale-95 disabled:scale-100 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-uleam-green-primary/15 transition-all cursor-pointer"
-            >
+              className="neon-btn w-full py-4 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
               {loading ? (
-                <>
-                  <Spinner size="sm" /> Iniciando Sesión...
-                </>
+                <><Spinner size="sm" /> Iniciando Sesión...</>
               ) : (
-                <>
-                  <LogIn className="w-4.5 h-4.5" /> Iniciar Sesión
-                </>
+                <><LogIn className="w-4 h-4" /> <Zap className="w-4 h-4" /> Entrar al Casino</>
               )}
             </button>
 
           </form>
-          
-          <div className="mt-8 pt-6 border-t border-neutral-200/60 dark:border-neutral-800/50 text-center">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+
+          <div className="mt-8 pt-6 text-center border-t" style={{ borderColor: 'rgba(255,0,128,.15)' }}>
+            <p className="text-xs font-medium" style={{ color: 'rgba(240,230,255,.4)' }}>
               ¿No tienes una cuenta institucional registrada?{' '}
-              <Link
-                href="/register"
-                className="text-uleam-green-primary dark:text-emerald-400 font-bold hover:underline"
-              >
+              <Link href="/register" className="neon-text-pink font-black hover:underline">
                 Regístrate aquí
               </Link>
             </p>
           </div>
-
         </div>
 
       </div>

@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Trophy, Mail, Lock, User, UserPlus, ArrowLeft, GraduationCap, Briefcase } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, ArrowLeft, GraduationCap, Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { validateUleamEmail } from '@/lib/auth';
@@ -11,7 +12,7 @@ import { validateUleamEmail } from '@/lib/auth';
 export default function Register() {
   const router = useRouter();
   const { showToast } = useToast();
-  
+
   const [formData, setFormData] = useState({
     nombreCompleto: '',
     correoInstitucional: '',
@@ -20,7 +21,7 @@ export default function Register() {
     nivel: '1ro',
     carrera: 'Tecnología de la Información',
   });
-  
+
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -32,45 +33,35 @@ export default function Register() {
     e.preventDefault();
     const { nombreCompleto, correoInstitucional, contrasena, confirmarContrasena, nivel, carrera } = formData;
 
-    // 1. Validar campos obligatorios
     if (!nombreCompleto || !correoInstitucional || !contrasena || !confirmarContrasena || !nivel || !carrera) {
       showToast('Por favor, completa todos los campos del registro.', 'error');
       return;
     }
-
-    // 2. Validar formato correo institucional
     if (!validateUleamEmail(correoInstitucional)) {
       showToast('El correo institucional debe iniciar con "e" y números. Ejemplo: e1234567890@live.uleam.edu.ec', 'error');
       return;
     }
-
-    // 3. Validar contraseñas
     if (contrasena !== confirmarContrasena) {
       showToast('Las contraseñas no coinciden.', 'error');
       return;
     }
-
-    // 4. Validar longitud de contraseña
     if (contrasena.length < 6) {
       showToast('La contraseña debe tener al menos 6 caracteres.', 'error');
       return;
     }
 
     setLoading(true);
-
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         showToast(data.error || 'Ocurrió un error al procesar el registro.', 'error');
       } else {
-        showToast('¡Registro exitoso! Iniciando sesión automáticamente...', 'success');
+        showToast('¡Registro exitoso! 🎰 Iniciando sesión automáticamente...', 'success');
         router.push('/dashboard');
         router.refresh();
       }
@@ -82,50 +73,60 @@ export default function Register() {
     }
   };
 
-  return (
-    <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative min-h-screen bg-neutral-50 dark:bg-neutral-950 font-sans">
-      
-      {/* Decorative Blur Background */}
-      <div className="absolute top-[10%] right-[10%] w-[350px] h-[350px] rounded-full bg-uleam-green-soft/40 dark:bg-uleam-green-dark/15 blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-[10%] left-[10%] w-[350px] h-[350px] rounded-full bg-red-50/20 dark:bg-uleam-red-dark/5 blur-3xl pointer-events-none -z-10" />
+  const inputClass = 'casino-input w-full pl-11 pr-4 py-3 rounded-xl text-sm';
+  const labelClass = 'text-[10px] font-black uppercase tracking-widest block mb-1.5';
+  const iconWrap = 'absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none';
 
-      {/* Back Button */}
-      <Link
-        href="/"
-        className="absolute top-8 left-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-uleam-green-primary dark:text-neutral-400 dark:hover:text-emerald-400 transition-colors"
-      >
+  return (
+    <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative min-h-screen font-sans">
+
+      {/* Ambient blobs */}
+      <div className="absolute top-[10%] right-[10%] w-[400px] h-[400px] rounded-full pointer-events-none -z-10"
+        style={{ background: 'radial-gradient(circle, rgba(191,0,255,.12) 0%, transparent 70%)' }} />
+      <div className="absolute bottom-[10%] left-[10%] w-[350px] h-[350px] rounded-full pointer-events-none -z-10"
+        style={{ background: 'radial-gradient(circle, rgba(0,229,255,.08) 0%, transparent 70%)' }} />
+
+      {/* Back button */}
+      <Link href="/"
+        className="absolute top-8 left-8 inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-all hover:scale-105"
+        style={{ color: 'rgba(0,229,255,.7)' }}>
         <ArrowLeft className="w-4 h-4" /> Volver al Inicio
       </Link>
 
       <div className="w-full max-w-lg mt-8 mb-8">
-        
-        {/* Header Card */}
+
+        {/* Logo header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-uleam-green-primary to-uleam-green-medium flex items-center justify-center text-white shadow-lg shadow-uleam-green-primary/20 mb-3">
-            <Trophy className="w-7 h-7" />
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mb-4 animate-neon-pulse-purple"
+            style={{
+              border: '2px solid rgba(191,0,255,.6)',
+              boxShadow: '0 0 20px rgba(191,0,255,.4)',
+              animation: 'neon-pulse-cyan 2s ease-in-out infinite',
+            }}>
+            <Image src="/logo-gyps.png" alt="GYPS Logo" width={64} height={64} className="object-contain" />
           </div>
-          <h2 className="text-2xl font-black text-neutral-900 dark:text-white text-center">Registro Universitario</h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center font-medium mt-1 uppercase tracking-wider">
-            Predicciones Copa Mundial 2026
+          <h2 className="text-3xl font-black text-white tracking-tight">
+            <span className="neon-text-purple">REGISTRO</span>{' '}
+            <span className="neon-text-yellow">UNIVERSITARIO</span>
+          </h2>
+          <p className="text-[10px] font-bold tracking-widest uppercase mt-2"
+            style={{ color: 'rgba(255,109,0,.7)' }}>
+            🎯 Predicciones Copa Mundial 2026
           </p>
         </div>
 
-        {/* Register Card Form */}
-        <div className="p-8 rounded-3xl border border-neutral-200/60 bg-white/70 backdrop-blur-md shadow-xl dark:bg-neutral-900/65 dark:border-neutral-800/50">
-          
+        {/* Form card */}
+        <div className="casino-card p-8 rounded-3xl">
           <form onSubmit={handleSubmit} className="space-y-5">
-            
+
             {/* Full Name */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="nombreCompleto"
-                className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-              >
+            <div>
+              <label htmlFor="nombreCompleto" className={labelClass} style={{ color: 'rgba(0,229,255,.8)' }}>
                 Nombre Completo
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                  <User className="w-4.5 h-4.5" />
+                <div className={iconWrap} style={{ color: 'rgba(255,0,128,.6)' }}>
+                  <User className="w-4 h-4" />
                 </div>
                 <input
                   id="nombreCompleto"
@@ -136,22 +137,19 @@ export default function Register() {
                   value={formData.nombreCompleto}
                   onChange={handleChange}
                   disabled={loading}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             {/* Institutional Email */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="correoInstitucional"
-                className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-              >
+            <div>
+              <label htmlFor="correoInstitucional" className={labelClass} style={{ color: 'rgba(0,229,255,.8)' }}>
                 Correo Institucional
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                  <Mail className="w-4.5 h-4.5" />
+                <div className={iconWrap} style={{ color: 'rgba(255,0,128,.6)' }}>
+                  <Mail className="w-4 h-4" />
                 </div>
                 <input
                   id="correoInstitucional"
@@ -162,28 +160,24 @@ export default function Register() {
                   value={formData.correoInstitucional}
                   onChange={handleChange}
                   disabled={loading}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all"
+                  className={inputClass}
                 />
               </div>
-              <p className="text-[10px] text-neutral-400 font-medium">
+              <p className="text-[10px] font-medium mt-1.5" style={{ color: 'rgba(240,230,255,.35)' }}>
                 * Debe iniciar con "e" seguido de tu ID numérico y terminar en @live.uleam.edu.ec
               </p>
             </div>
 
-            {/* Level & Career (Two Columns) */}
+            {/* Level & Career */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Level Dropdown */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="nivel"
-                  className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-                >
+
+              <div>
+                <label htmlFor="nivel" className={labelClass} style={{ color: 'rgba(255,214,0,.8)' }}>
                   Nivel Semestre
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                    <GraduationCap className="w-4.5 h-4.5" />
+                  <div className={iconWrap} style={{ color: 'rgba(255,214,0,.5)' }}>
+                    <GraduationCap className="w-4 h-4" />
                   </div>
                   <select
                     id="nivel"
@@ -191,31 +185,22 @@ export default function Register() {
                     value={formData.nivel}
                     onChange={handleChange}
                     disabled={loading}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all appearance-none cursor-pointer"
+                    className="casino-select w-full pl-11 pr-4 py-3 rounded-xl text-sm cursor-pointer"
                   >
-                    <option value="1ro">1ro</option>
-                    <option value="2do">2do</option>
-                    <option value="3ro">3ro</option>
-                    <option value="4to">4to</option>
-                    <option value="5to">5to</option>
-                    <option value="6to">6to</option>
-                    <option value="7mo">7mo</option>
-                    <option value="8vo">8vo</option>
+                    {['1ro','2do','3ro','4to','5to','6to','7mo','8vo'].map(n => (
+                      <option key={n} value={n}>{n} Semestre</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              {/* Career Dropdown */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="carrera"
-                  className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-                >
+              <div>
+                <label htmlFor="carrera" className={labelClass} style={{ color: 'rgba(255,214,0,.8)' }}>
                   Carrera
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                    <Briefcase className="w-4.5 h-4.5" />
+                  <div className={iconWrap} style={{ color: 'rgba(255,214,0,.5)' }}>
+                    <Briefcase className="w-4 h-4" />
                   </div>
                   <select
                     id="carrera"
@@ -223,30 +208,26 @@ export default function Register() {
                     value={formData.carrera}
                     onChange={handleChange}
                     disabled={loading}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all appearance-none cursor-pointer"
+                    className="casino-select w-full pl-11 pr-4 py-3 rounded-xl text-sm cursor-pointer"
                   >
-                    <option value="Tecnología de la Información">TI</option>
-                    <option value="Ingeniería en Software">Software</option>
+                    <option value="Tecnología de la Información">TI – Tecnología de la Información</option>
+                    <option value="Ingeniería en Software">IS – Ingeniería en Software</option>
                   </select>
                 </div>
               </div>
 
             </div>
 
-            {/* Passwords (Two Columns) */}
+            {/* Passwords */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="contrasena"
-                  className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-                >
+
+              <div>
+                <label htmlFor="contrasena" className={labelClass} style={{ color: 'rgba(0,229,255,.8)' }}>
                   Contraseña
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                    <Lock className="w-4.5 h-4.5" />
+                  <div className={iconWrap} style={{ color: 'rgba(255,0,128,.6)' }}>
+                    <Lock className="w-4 h-4" />
                   </div>
                   <input
                     id="contrasena"
@@ -257,22 +238,18 @@ export default function Register() {
                     value={formData.contrasena}
                     onChange={handleChange}
                     disabled={loading}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all"
+                    className={inputClass}
                   />
                 </div>
               </div>
 
-              {/* Confirm Password */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="confirmarContrasena"
-                  className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider block"
-                >
+              <div>
+                <label htmlFor="confirmarContrasena" className={labelClass} style={{ color: 'rgba(0,229,255,.8)' }}>
                   Confirmar Contraseña
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 dark:text-neutral-500">
-                    <Lock className="w-4.5 h-4.5" />
+                  <div className={iconWrap} style={{ color: 'rgba(255,0,128,.6)' }}>
+                    <Lock className="w-4 h-4" />
                   </div>
                   <input
                     id="confirmarContrasena"
@@ -283,44 +260,36 @@ export default function Register() {
                     value={formData.confirmarContrasena}
                     onChange={handleChange}
                     disabled={loading}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-950/60 text-sm focus:border-uleam-green-medium dark:focus:border-emerald-500 focus:ring-1 focus:ring-uleam-green-medium/20 focus:outline-none transition-all"
+                    className={inputClass}
                   />
                 </div>
               </div>
 
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
+              id="register-submit-btn"
               disabled={loading}
-              className="w-full py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-uleam-green-primary via-uleam-green-medium to-uleam-green-light hover:brightness-110 active:scale-95 disabled:scale-100 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-uleam-green-primary/15 transition-all cursor-pointer mt-2"
-            >
+              className="neon-btn w-full py-4 rounded-xl text-sm flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
               {loading ? (
-                <>
-                  <Spinner size="sm" /> Procesando Registro...
-                </>
+                <><Spinner size="sm" /> Procesando Registro...</>
               ) : (
-                <>
-                  <UserPlus className="w-4.5 h-4.5" /> Crear Cuenta
-                </>
+                <><UserPlus className="w-4 h-4" /> <Zap className="w-4 h-4" /> Crear mi Cuenta 🎰</>
               )}
             </button>
 
           </form>
-          
-          <div className="mt-8 pt-6 border-t border-neutral-200/60 dark:border-neutral-800/50 text-center">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+
+          <div className="mt-8 pt-6 text-center border-t" style={{ borderColor: 'rgba(255,0,128,.15)' }}>
+            <p className="text-xs font-medium" style={{ color: 'rgba(240,230,255,.4)' }}>
               ¿Ya tienes una cuenta registrada?{' '}
-              <Link
-                href="/login"
-                className="text-uleam-green-primary dark:text-emerald-400 font-bold hover:underline"
-              >
+              <Link href="/login" className="neon-text-cyan font-black hover:underline">
                 Inicia sesión aquí
               </Link>
             </p>
           </div>
-
         </div>
 
       </div>
