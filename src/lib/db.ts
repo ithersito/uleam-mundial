@@ -13,8 +13,13 @@ interface LocalDB {
   predicciones: Prediccion[];
 }
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 // Inicializar base de datos local si no existe
 function initLocalDB(): LocalDB {
+  if (IS_PRODUCTION) {
+    throw new Error('El sistema de base de datos local no está disponible en producción. Configura las variables de entorno de Supabase.');
+  }
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -171,6 +176,7 @@ export const db = {
         });
         return nuevoUsuario;
       } catch (error) {
+        if (IS_PRODUCTION) throw error;
         console.error('Error creando usuario en Supabase, guardando localmente...', error);
       }
     }
@@ -314,6 +320,7 @@ export const db = {
         });
         return nuevaPrediccion;
       } catch (error) {
+        if (IS_PRODUCTION) throw error;
         console.error('Error creando predicción en Supabase, guardando localmente...', error);
       }
     }
