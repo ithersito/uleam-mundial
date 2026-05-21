@@ -263,8 +263,10 @@ export const db = {
         if (data && data.length > 0) {
           return { prediccionesAbiertas: data[0].valor === 'true' };
         }
+        return { prediccionesAbiertas: true };
       } catch (error) {
         console.error('Error leyendo config de Supabase:', error);
+        return { prediccionesAbiertas: true };
       }
     }
     const localDb = initLocalDB();
@@ -284,6 +286,7 @@ export const db = {
         return this.getConfig();
       } catch (error) {
         console.error('Error guardando config en Supabase:', error);
+        return this.getConfig();
       }
     }
     const localDb = initLocalDB();
