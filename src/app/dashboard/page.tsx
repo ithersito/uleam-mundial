@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, LogOut, ShieldAlert, Award, Calendar,
-  CheckCircle2, Lock, User, Briefcase, GraduationCap, Zap,
+  CheckCircle2, Lock, User, Briefcase, GraduationCap, Zap, AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [prediccion, setPrediccion] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
 
   const [form, setForm] = useState({
     primerPuesto: '',
@@ -101,19 +102,18 @@ export default function Dashboard() {
     showToast('🔒 Reglamento Oficial: Las predicciones guardadas son definitivas y no se pueden modificar.', 'error');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const { primerPuesto, segundoPuesto, tercerPuesto, ecuadorPosicion } = form;
-
     if (!primerPuesto || !segundoPuesto || !tercerPuesto || !ecuadorPosicion) {
       showToast('Por favor, selecciona los tres puestos del podio y la posición de Ecuador.', 'error');
       return;
     }
-    if (primerPuesto === segundoPuesto || primerPuesto === tercerPuesto || segundoPuesto === tercerPuesto) {
-      showToast('No puedes seleccionar el mismo país en más de una posición del podio.', 'error');
-      return;
-    }
+    setMostrarConfirmacion(true);
+  };
 
+  const handleConfirmar = async () => {
+    setMostrarConfirmacion(false);
     setSaving(true);
     try {
       const response = await fetch('/api/predictions', {
@@ -136,13 +136,15 @@ export default function Dashboard() {
     }
   };
 
-  const renderPaisesOptions = () => (
+  const renderPaisesOptions = (excluir: string[] = []) => (
     <>
       <option value="" disabled>Selecciona un país...</option>
       {PAISES_REGIONES.map((reg) => (
         <optgroup key={reg.region} label={reg.region}>
           {reg.paises.map((pais) => (
-            <option key={pais} value={pais}>{pais}</option>
+            <option key={pais} value={pais} disabled={excluir.includes(pais)}>
+              {excluir.includes(pais) ? `${pais} ✗` : pais}
+            </option>
           ))}
         </optgroup>
       ))}
@@ -177,6 +179,74 @@ export default function Dashboard() {
 
   return (
     <div className="flex-1 flex flex-col relative font-sans min-h-screen">
+
+      {/* ── Modal de confirmación ── */}
+      {mostrarConfirmacion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(6,0,15,.92)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-md rounded-3xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,0,128,.4)', boxShadow: '0 0 60px rgba(255,0,128,.2)' }}>
+
+            {/* Header */}
+            <div className="px-6 py-5 flex items-center gap-3"
+              style={{ background: 'rgba(255,0,128,.06)', borderBottom: '1px solid rgba(255,0,128,.2)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(255,0,128,.12)', border: '1px solid rgba(255,0,128,.4)' }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: '#ff0080' }} />
+              </div>
+              <div>
+                <h2 className="text-base font-black" style={{ color: '#ff0080' }}>¿Confirmar predicción?</h2>
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(240,230,255,.4)' }}>
+                  Esta acción es irreversible
+                </p>
+              </div>
+            </div>
+
+            {/* Resumen */}
+            <div className="px-6 py-5 space-y-3" style={{ background: 'rgba(12,0,26,.85)' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(240,230,255,.6)' }}>
+                Estás a punto de enviar tu predicción oficial. Una vez confirmada,{' '}
+                <strong className="text-white">no podrás editarla</strong>. Verifica que todo esté correcto:
+              </p>
+              <div className="rounded-2xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+                <div className="flex justify-between text-xs">
+                  <span style={{ color: 'rgba(240,230,255,.4)' }}>🥇 Campeón</span>
+                  <strong className="neon-text-yellow">{form.primerPuesto}</strong>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span style={{ color: 'rgba(240,230,255,.4)' }}>🥈 Subcampeón</span>
+                  <strong className="neon-text-cyan">{form.segundoPuesto}</strong>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span style={{ color: 'rgba(240,230,255,.4)' }}>🥉 Tercer Lugar</span>
+                  <strong style={{ color: '#ff6d00' }}>{form.tercerPuesto}</strong>
+                </div>
+                <div className="flex justify-between text-xs pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,.07)' }}>
+                  <span style={{ color: 'rgba(240,230,255,.4)' }}>🇪🇨 Ecuador</span>
+                  <strong className="neon-text-green">Puesto #{form.ecuadorPosicion}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="px-6 py-5 flex gap-3" style={{ background: 'rgba(6,0,15,.9)', borderTop: '1px solid rgba(255,0,128,.15)' }}>
+              <button
+                onClick={() => setMostrarConfirmacion(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all hover:scale-105"
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(240,230,255,.5)' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmar}
+                className="flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #ff0080, #bf00ff)', color: '#fff', boxShadow: '0 0 20px rgba(255,0,128,.4)' }}>
+                ✅ Sí, confirmar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Ambient blobs */}
       <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full pointer-events-none -z-10"
@@ -397,7 +467,7 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-7">
+              <form onSubmit={handleFormSubmit} className="space-y-7">
 
                 {/* Podium section */}
                 <div>
@@ -410,10 +480,10 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
                     {[
-                      { id: 'primerPuesto',   label: '1er Puesto – Campeón',    color: 'rgba(255,214,0,.4)' },
-                      { id: 'segundoPuesto',  label: '2do Puesto – Subcampeón', color: 'rgba(0,229,255,.4)' },
-                      { id: 'tercerPuesto',   label: '3er Puesto – Tercer Lugar', color: 'rgba(255,109,0,.4)' },
-                    ].map(({ id, label, color }) => (
+                      { id: 'primerPuesto',  label: '1er Puesto – Campeón',     color: 'rgba(255,214,0,.4)',  excluir: [form.segundoPuesto, form.tercerPuesto] },
+                      { id: 'segundoPuesto', label: '2do Puesto – Subcampeón',  color: 'rgba(0,229,255,.4)',  excluir: [form.primerPuesto,  form.tercerPuesto] },
+                      { id: 'tercerPuesto',  label: '3er Puesto – Tercer Lugar', color: 'rgba(255,109,0,.4)', excluir: [form.primerPuesto,  form.segundoPuesto] },
+                    ].map(({ id, label, color, excluir }) => (
                       <div key={id} className="space-y-2">
                         <label htmlFor={id}
                           className="text-[10px] font-black uppercase tracking-wider block"
@@ -428,7 +498,7 @@ export default function Dashboard() {
                           onChange={handleChange}
                           disabled={saving}
                           className="casino-select w-full px-4 py-3 rounded-xl text-sm cursor-pointer">
-                          {renderPaisesOptions()}
+                          {renderPaisesOptions(excluir.filter(Boolean))}
                         </select>
                       </div>
                     ))}
