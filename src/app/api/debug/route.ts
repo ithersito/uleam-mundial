@@ -1,10 +1,23 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  return NextResponse.json({
-    SUPABASE_URL: process.env.SUPABASE_URL ? `set (${process.env.SUPABASE_URL.substring(0, 20)}...)` : 'NOT SET',
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? `set (${process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 10)}...)` : 'NOT SET',
-    JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET',
-    NODE_ENV: process.env.NODE_ENV,
-  });
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return NextResponse.json({ error: 'vars not set' });
+  }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?select=id&limit=1`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+    });
+    const text = await res.text();
+    return NextResponse.json({ status: res.status, body: text });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message });
+  }
 }
