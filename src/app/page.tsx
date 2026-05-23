@@ -31,13 +31,13 @@ function useCountdown(target: Date) {
 
 function CountdownUnit({ value, label, color }: { value: number; label: string; color: string }) {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1.5 flex-1">
       <div
-        className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl flex items-center justify-center font-black text-3xl sm:text-5xl tabular-nums relative overflow-hidden"
+        className="w-full aspect-square rounded-2xl flex items-center justify-center font-black tabular-nums relative overflow-hidden text-3xl sm:text-4xl md:text-5xl"
         style={{
           background: `linear-gradient(135deg, ${color}12, ${color}06)`,
           border: `1px solid ${color}50`,
-          boxShadow: `0 0 30px ${color}20, inset 0 1px 0 ${color}20`,
+          boxShadow: `0 0 24px ${color}18, inset 0 1px 0 ${color}20`,
           color,
         }}
       >
@@ -45,7 +45,7 @@ function CountdownUnit({ value, label, color }: { value: number; label: string; 
           style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.03) 2px, rgba(255,255,255,.03) 4px)' }} />
         {String(value).padStart(2, '0')}
       </div>
-      <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest" style={{ color: `${color}90` }}>
+      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest" style={{ color: `${color}90` }}>
         {label}
       </span>
     </div>
@@ -68,33 +68,32 @@ function WorldCupCountdown() {
 
   return (
     <div
-      className="rounded-3xl px-6 sm:px-10 py-7 flex flex-col items-center gap-6 relative overflow-hidden"
+      className="w-full rounded-3xl px-4 sm:px-8 py-6 flex flex-col items-center gap-5 relative overflow-hidden"
       style={{
         background: 'linear-gradient(135deg, rgba(12,0,26,.95), rgba(20,0,40,.9))',
         border: '1px solid rgba(255,214,0,.3)',
         boxShadow: '0 0 60px rgba(255,214,0,.1), 0 0 120px rgba(255,0,128,.06)',
       }}
     >
-      {/* glow blob */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-24 pointer-events-none"
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-20 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse, rgba(255,214,0,.12) 0%, transparent 70%)' }} />
 
-      <div className="flex flex-col items-center gap-1">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: 'rgba(255,214,0,.8)' }}>
+      <div className="flex flex-col items-center gap-0.5">
+        <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-center" style={{ color: 'rgba(255,214,0,.8)' }}>
           ⏳ Cuenta regresiva — Partido Inaugural
         </p>
-        <p className="text-[10px] font-medium" style={{ color: 'rgba(240,230,255,.35)' }}>
+        <p className="text-[9px] sm:text-[10px] font-medium" style={{ color: 'rgba(240,230,255,.35)' }}>
           🇲🇽 México · Jueves 11 jun 2026 · 14:00 hora Ecuador
         </p>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-1.5 sm:gap-3 w-full">
         <CountdownUnit value={days}    label="días"     color="#ffd600" />
-        <span className="text-3xl sm:text-4xl font-black pb-6 select-none" style={{ color: 'rgba(255,214,0,.4)' }}>:</span>
+        <span className="text-2xl sm:text-3xl font-black pb-6 select-none flex-shrink-0" style={{ color: 'rgba(255,214,0,.4)' }}>:</span>
         <CountdownUnit value={hours}   label="horas"    color="#00e5ff" />
-        <span className="text-3xl sm:text-4xl font-black pb-6 select-none" style={{ color: 'rgba(0,229,255,.4)' }}>:</span>
+        <span className="text-2xl sm:text-3xl font-black pb-6 select-none flex-shrink-0" style={{ color: 'rgba(0,229,255,.4)' }}>:</span>
         <CountdownUnit value={minutes} label="minutos"  color="#ff0080" />
-        <span className="text-3xl sm:text-4xl font-black pb-6 select-none" style={{ color: 'rgba(255,0,128,.4)' }}>:</span>
+        <span className="text-2xl sm:text-3xl font-black pb-6 select-none flex-shrink-0" style={{ color: 'rgba(255,0,128,.4)' }}>:</span>
         <CountdownUnit value={seconds} label="segundos" color="#bf00ff" />
       </div>
     </div>
