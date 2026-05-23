@@ -31,19 +31,21 @@ function useCountdown(target: Date) {
 
 function CountdownUnit({ value, label, color }: { value: number; label: string; color: string }) {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-2">
       <div
-        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-black text-2xl sm:text-3xl tabular-nums"
+        className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl flex items-center justify-center font-black text-3xl sm:text-5xl tabular-nums relative overflow-hidden"
         style={{
-          background: `${color}0d`,
-          border: `1px solid ${color}40`,
-          boxShadow: `0 0 18px ${color}25`,
+          background: `linear-gradient(135deg, ${color}12, ${color}06)`,
+          border: `1px solid ${color}50`,
+          boxShadow: `0 0 30px ${color}20, inset 0 1px 0 ${color}20`,
           color,
         }}
       >
+        <div className="absolute inset-0 opacity-5"
+          style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.03) 2px, rgba(255,255,255,.03) 4px)' }} />
         {String(value).padStart(2, '0')}
       </div>
-      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${color}80` }}>
+      <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest" style={{ color: `${color}90` }}>
         {label}
       </span>
     </div>
@@ -56,34 +58,45 @@ function WorldCupCountdown() {
   if (started) {
     return (
       <div
-        className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-black"
+        className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-sm font-black"
         style={{ background: 'rgba(57,255,20,.07)', border: '1px solid rgba(57,255,20,.35)', color: '#39ff14' }}
       >
-        ⚽ ¡El Mundial ya comenzó! Haz tu predicción ahora.
+        <span className="text-xl">⚽</span> ¡El Mundial ya comenzó! Haz tu predicción ahora.
       </div>
     );
   }
 
   return (
     <div
-      className="rounded-3xl px-6 py-5 flex flex-col items-center gap-4"
-      style={{ background: 'rgba(12,0,26,.75)', border: '1px solid rgba(255,214,0,.25)', boxShadow: '0 0 40px rgba(255,214,0,.08)' }}
+      className="rounded-3xl px-6 sm:px-10 py-7 flex flex-col items-center gap-6 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, rgba(12,0,26,.95), rgba(20,0,40,.9))',
+        border: '1px solid rgba(255,214,0,.3)',
+        boxShadow: '0 0 60px rgba(255,214,0,.1), 0 0 120px rgba(255,0,128,.06)',
+      }}
     >
-      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,214,0,.7)' }}>
-        ⏳ Cuenta regresiva — Partido Inaugural
-      </p>
-      <div className="flex items-end gap-3 sm:gap-4">
+      {/* glow blob */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-24 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, rgba(255,214,0,.12) 0%, transparent 70%)' }} />
+
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: 'rgba(255,214,0,.8)' }}>
+          ⏳ Cuenta regresiva — Partido Inaugural
+        </p>
+        <p className="text-[10px] font-medium" style={{ color: 'rgba(240,230,255,.35)' }}>
+          🇲🇽 México · Jueves 11 jun 2026 · 14:00 hora Ecuador
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-4">
         <CountdownUnit value={days}    label="días"     color="#ffd600" />
-        <span className="text-2xl font-black neon-text-yellow mb-5 select-none">:</span>
+        <span className="text-3xl sm:text-4xl font-black pb-6 select-none" style={{ color: 'rgba(255,214,0,.4)' }}>:</span>
         <CountdownUnit value={hours}   label="horas"    color="#00e5ff" />
-        <span className="text-2xl font-black neon-text-cyan mb-5 select-none">:</span>
+        <span className="text-3xl sm:text-4xl font-black pb-6 select-none" style={{ color: 'rgba(0,229,255,.4)' }}>:</span>
         <CountdownUnit value={minutes} label="minutos"  color="#ff0080" />
-        <span className="text-2xl font-black neon-text-pink mb-5 select-none">:</span>
+        <span className="text-3xl sm:text-4xl font-black pb-6 select-none" style={{ color: 'rgba(255,0,128,.4)' }}>:</span>
         <CountdownUnit value={seconds} label="segundos" color="#bf00ff" />
       </div>
-      <p className="text-[10px] font-medium" style={{ color: 'rgba(240,230,255,.35)' }}>
-        🇲🇽 México — Jueves 11 jun 2026 · 14:00 hora Ecuador
-      </p>
     </div>
   );
 }
@@ -222,35 +235,10 @@ function ReglasModal({ onAceptar }: { onAceptar: () => void }) {
   );
 }
 
-const REEL_SYMBOLS = ['🏆', '⚽', '🌍', '🎯', '🥇', '🔥', '💎', '7️⃣'];
-
-function SlotReel({ symbols, delay = 0, small = false }: { symbols: string[]; delay?: number; small?: boolean }) {
-  const [current, setCurrent] = useState(0);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const id = setInterval(() => setCurrent(p => (p + 1) % symbols.length), 120);
-      setTimeout(() => clearInterval(id), 1800 + delay);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [symbols, delay]);
-  return (
-    <div
-      className={`flex items-center justify-center rounded-xl overflow-hidden ${small ? 'w-12 h-12 text-2xl sm:w-16 sm:h-16 sm:text-3xl' : 'w-16 h-16 text-3xl'}`}
-      style={{
-        background: 'linear-gradient(180deg, #1a0030 0%, #0c001a 100%)',
-        border: '2px solid rgba(255,0,128,.5)',
-        boxShadow: '0 0 10px rgba(255,0,128,.4), inset 0 0 10px rgba(0,0,0,.5)',
-      }}
-    >
-      <span className="animate-reel-drop select-none">{symbols[current]}</span>
-    </div>
-  );
-}
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [tickerStep, setTickerStep] = useState(0);
   const [mostrarReglas, setMostrarReglas] = useState(false);
 
   const TICKER_ITEMS = [
@@ -278,8 +266,7 @@ export default function Home() {
     checkAuth();
     const aceptado = localStorage.getItem('gyps_reglas_aceptadas');
     if (!aceptado) setMostrarReglas(true);
-    const tickerId = setInterval(() => setTickerStep(p => (p + 1) % TICKER_ITEMS.length), 2500);
-    return () => clearInterval(tickerId);
+    return () => {};
   }, []);
 
   function handleAceptarReglas() {
@@ -362,20 +349,9 @@ export default function Home() {
           <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
         </div>
 
-        {/* Slot machine reels */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-6 p-3 sm:p-4 rounded-2xl"
-          style={{ background: 'rgba(12,0,26,.7)', border: '2px solid rgba(255,214,0,.3)', boxShadow: '0 0 20px rgba(255,214,0,.15)' }}>
-          {[
-            ['🏆', '⚽', '🌍', '🎯'],
-            ['7️⃣', '💎', '🔥', '🥇'],
-            ['⚽', '🏆', '🎯', '7️⃣'],
-          ].map((syms, i) => (
-            <SlotReel key={i} symbols={syms} delay={i * 400} small />
-          ))}
-          <div className="ml-1 sm:ml-2 text-left">
-            <p className="text-[8px] sm:text-[9px] font-black tracking-widest uppercase" style={{ color: 'rgba(255,214,0,.7)' }}>JACKPOT</p>
-            <p className="text-lg sm:text-xl font-black neon-text-yellow">GYPS</p>
-          </div>
+        {/* Countdown — hero */}
+        <div className="w-full max-w-2xl mb-8">
+          <WorldCupCountdown />
         </div>
 
         {/* Main heading */}
@@ -398,13 +374,8 @@ export default function Home() {
           Regístrate con tu correo institucional, predice el podio y pasa el semestre.
         </p>
 
-        {/* Countdown */}
-        <div className="mt-8 w-full max-w-sm sm:max-w-md">
-          <WorldCupCountdown />
-        </div>
-
         {/* CTA Buttons */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-sm sm:max-w-none">
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-sm sm:max-w-none">
           {loading ? (
             <Spinner />
           ) : user ? (
