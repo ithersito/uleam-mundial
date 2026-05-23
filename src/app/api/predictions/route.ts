@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifyJWT, SESSION_COOKIE_NAME } from '@/lib/auth';
+import { isMundialStarted } from '@/lib/constants';
 
 // Helper para obtener el usuario autenticado
 async function getAuthenticatedUser(request: Request) {
@@ -47,7 +48,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Verificar si las predicciones están abiertas
+    // 1. Verificar si el Mundial ya comenzó (cierre automático por fecha)
+    if (isMundialStarted()) {
+      return NextResponse.json(
+        { error: 'Las predicciones están cerradas. El Mundial ya comenzó el 11 de junio de 2026.' },
+        { status: 403 }
+      );
+    }
+
+    // 1b. Verificar si las predicciones están cerradas manualmente por el admin
     const config = await db.getConfig();
     if (!config.prediccionesAbiertas) {
       return NextResponse.json(

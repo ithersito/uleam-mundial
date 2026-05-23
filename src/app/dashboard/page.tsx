@@ -9,6 +9,20 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
+import { MUNDIAL_START } from '@/lib/constants';
+
+const FASES_COPA = [
+  { label: 'Fase de Grupos',         short: 'Grupos',        color: '#ff6d00', equipos: 48, min: 33, max: 48, pos: 40, icon: '🟠' },
+  { label: 'Dieciseisavos de Final', short: 'Dieciseisavos', color: '#ffd600', equipos: 32, min: 17, max: 32, pos: 24, icon: '🟡' },
+  { label: 'Octavos de Final',       short: 'Octavos',       color: '#00e5ff', equipos: 16, min: 9,  max: 16, pos: 12, icon: '🔵' },
+  { label: 'Cuartos de Final',       short: 'Cuartos',       color: '#bf00ff', equipos: 8,  min: 5,  max: 8,  pos: 6,  icon: '🟣' },
+  { label: 'Semifinales',            short: 'Semifinal',     color: '#ff0080', equipos: 4,  min: 3,  max: 4,  pos: 4,  icon: '🔴' },
+  { label: 'Gran Final',             short: 'Final',         color: '#ffd600', equipos: 2,  min: 1,  max: 2,  pos: 1,  icon: '🏆' },
+];
+
+function getFaseCopa(pos: number) {
+  return FASES_COPA.find(f => pos >= f.min && pos <= f.max) ?? FASES_COPA[0];
+}
 
 // Agrupación de países por regiones
 const PAISES_REGIONES = [
@@ -46,13 +60,21 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [mundialStarted, setMundialStarted] = useState(() => Date.now() >= MUNDIAL_START.getTime());
 
   const [form, setForm] = useState({
     primerPuesto: '',
     segundoPuesto: '',
     tercerPuesto: '',
-    ecuadorPosicion: '1',
+    ecuadorPosicion: '40',
   });
+
+  useEffect(() => {
+    if (mundialStarted) return;
+    const msLeft = MUNDIAL_START.getTime() - Date.now();
+    const t = setTimeout(() => setMundialStarted(true), msLeft);
+    return () => clearTimeout(t);
+  }, [mundialStarted]);
 
   useEffect(() => {
     async function initDashboard() {
@@ -223,7 +245,9 @@ export default function Dashboard() {
                 </div>
                 <div className="flex justify-between text-xs pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,.07)' }}>
                   <span style={{ color: 'rgba(240,230,255,.4)' }}>🇪🇨 Ecuador</span>
-                  <strong className="neon-text-green">Puesto #{form.ecuadorPosicion}</strong>
+                  <strong className="neon-text-green">
+                    {getFaseCopa(parseInt(form.ecuadorPosicion)).icon} {getFaseCopa(parseInt(form.ecuadorPosicion)).label}
+                  </strong>
                 </div>
               </div>
             </div>
@@ -444,6 +468,56 @@ export default function Dashboard() {
                 <div className="text-2xl font-black neon-text-green">Puesto #{prediccion.ecuadorPosicion}</div>
               </div>
 
+              {/* Copa structure */}
+              {(() => {
+                const fase = getFaseCopa(prediccion.ecuadorPosicion);
+                const faseIdx = FASES_COPA.indexOf(fase);
+                return (
+                  <div className="rounded-2xl p-5 mb-2"
+                    style={{ background: `${fase.color}08`, border: `1px solid ${fase.color}25` }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-4"
+                      style={{ color: `${fase.color}99` }}>
+                      ⚽ Estructura de la Copa — Hasta dónde llega Ecuador
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {FASES_COPA.map((f, idx) => {
+                        const esFaseActual = idx === faseIdx;
+                        const esPasada = idx < faseIdx;
+                        const opacity = esFaseActual ? 1 : esPasada ? 0.45 : 0.15;
+                        return (
+                          <div key={f.label}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                            style={{
+                              background: esFaseActual ? `${f.color}14` : 'transparent',
+                              border: `1px solid ${esFaseActual ? f.color + '50' : 'transparent'}`,
+                              opacity,
+                            }}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs"
+                              style={{ background: `${f.color}18`, border: `1px solid ${f.color}40` }}>
+                              {esFaseActual ? '🇪🇨' : esPasada ? '✓' : String(idx + 1)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-black leading-tight" style={{ color: esFaseActual ? f.color : '#f0e6ff' }}>
+                                {f.label}
+                              </p>
+                              <p className="text-[9px]" style={{ color: 'rgba(240,230,255,.4)' }}>
+                                {f.equipos} equipos
+                              </p>
+                            </div>
+                            {esFaseActual && (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: `${f.color}20`, color: f.color, border: `1px solid ${f.color}50` }}>
+                                Puesto #{prediccion.ecuadorPosicion}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Timestamp */}
               <div className="flex items-center gap-2 pt-4 border-t text-[10px] font-medium"
                 style={{ borderColor: 'rgba(255,0,128,.1)', color: 'rgba(240,230,255,.3)' }}>
@@ -451,6 +525,26 @@ export default function Dashboard() {
                 <span>Enviado oficialmente el: <strong style={{ color: 'rgba(0,229,255,.6)' }}>{new Date(prediccion.creadoEn).toLocaleString('es-EC')}</strong></span>
               </div>
 
+            </div>
+
+          ) : mundialStarted ? (
+            /* ─ CLOSED STATE ─ */
+            <div className="casino-card p-8 rounded-3xl flex flex-col items-center justify-center text-center gap-5 min-h-[320px]">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: 'rgba(255,109,0,.08)', border: '1px solid rgba(255,109,0,.4)' }}>
+                <Lock className="w-8 h-8" style={{ color: '#ff6d00' }} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white mb-2">Predicciones Cerradas</h3>
+                <p className="text-sm leading-relaxed max-w-sm" style={{ color: 'rgba(240,230,255,.5)' }}>
+                  El Mundial comenzó el <strong className="text-white">11 de junio de 2026</strong>.
+                  El plazo para enviar predicciones ha finalizado.
+                </p>
+              </div>
+              <div className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest"
+                style={{ background: 'rgba(255,109,0,.07)', border: '1px solid rgba(255,109,0,.3)', color: '#ff6d00' }}>
+                ⚽ El torneo ya está en curso
+              </div>
             </div>
 
           ) : (
@@ -508,34 +602,55 @@ export default function Dashboard() {
 
                 {/* Ecuador section */}
                 <div className="pt-6 border-t" style={{ borderColor: 'rgba(255,0,128,.12)' }}>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2"
+                  <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-2"
                     style={{ color: '#39ff14' }}>
                     <span className="w-1 h-4 rounded inline-block" style={{ background: '#39ff14', boxShadow: '0 0 6px #39ff14' }} />
-                    🇪🇨 Formulario 2: Posición Final de Ecuador
+                    🇪🇨 Formulario 2: Fase Final de Ecuador en la Copa
                   </h4>
+                  <p className="text-[10px] mb-4" style={{ color: 'rgba(240,230,255,.35)' }}>
+                    Selecciona hasta qué fase llegará Ecuador. El Mundial 2026 tiene 48 equipos.
+                  </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label htmlFor="ecuadorPosicion"
-                        className="text-xs font-bold text-white block">
-                        ¿En qué puesto quedará Ecuador? (Rango 1 a 48)
-                      </label>
-                      <p className="text-[10px]" style={{ color: 'rgba(240,230,255,.35)' }}>
-                        El torneo ampliado cuenta con 48 países participantes divididos en 12 grupos.
-                      </p>
-                    </div>
-                    <div>
-                      <select
-                        id="ecuadorPosicion"
-                        name="ecuadorPosicion"
-                        required
-                        value={form.ecuadorPosicion}
-                        onChange={handleChange}
-                        disabled={saving}
-                        className="casino-select w-full px-4 py-3 rounded-xl text-sm cursor-pointer">
-                        {renderEcuadorOptions()}
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {FASES_COPA.map((fase) => {
+                      const seleccionado = getFaseCopa(parseInt(form.ecuadorPosicion)).label === fase.label;
+                      return (
+                        <button
+                          key={fase.label}
+                          type="button"
+                          disabled={saving}
+                          onClick={() => setForm(prev => ({ ...prev, ecuadorPosicion: String(fase.pos) }))}
+                          className="flex flex-col gap-2 p-4 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                          style={{
+                            background: seleccionado ? `${fase.color}18` : 'rgba(255,255,255,.03)',
+                            border: `2px solid ${seleccionado ? fase.color : 'rgba(255,255,255,.08)'}`,
+                            boxShadow: seleccionado ? `0 0 20px ${fase.color}30` : 'none',
+                          }}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg">{fase.icon}</span>
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                              style={{ background: `${fase.color}20`, color: fase.color }}>
+                              {fase.equipos} eq.
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-black leading-tight"
+                              style={{ color: seleccionado ? fase.color : '#f0e6ff' }}>
+                              {fase.label}
+                            </p>
+                            <p className="text-[9px] mt-0.5" style={{ color: 'rgba(240,230,255,.35)' }}>
+                              Puestos {fase.min}–{fase.max}
+                            </p>
+                          </div>
+                          {seleccionado && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <CheckCircle2 className="w-3 h-3" style={{ color: fase.color }} />
+                              <span className="text-[9px] font-black" style={{ color: fase.color }}>Seleccionado</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

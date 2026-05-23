@@ -10,6 +10,32 @@ const NIVELES = ['Todos', '1ro', '2do', '3ro', '4to', '5to', '6to', '7mo', '8vo'
 const CARRERAS = ['Todas', 'Tecnología de la Información', 'Ingeniería en Software'];
 const ECUADOR_OPTS = ['Todas', ...Array.from({ length: 48 }, (_, i) => String(i + 1))];
 
+type Fase = {
+  label: string;
+  short: string;
+  color: string;
+  equipos: number;
+  icon: string;
+};
+
+const FASES: Fase[] = [
+  { label: 'Fase de Grupos',          short: 'Grupos',        color: '#ff6d00', equipos: 48, icon: '🟠' },
+  { label: 'Dieciseisavos de Final',  short: 'Dieciseisavos', color: '#ffd600', equipos: 32, icon: '🟡' },
+  { label: 'Octavos de Final',        short: 'Octavos',       color: '#00e5ff', equipos: 16, icon: '🔵' },
+  { label: 'Cuartos de Final',        short: 'Cuartos',       color: '#bf00ff', equipos: 8,  icon: '🟣' },
+  { label: 'Semifinales',             short: 'Semifinal',     color: '#ff0080', equipos: 4,  icon: '🔴' },
+  { label: 'Gran Final',              short: 'Final',         color: '#ffd600', equipos: 2,  icon: '🏆' },
+];
+
+function getFase(pos: number): Fase {
+  if (pos >= 33) return FASES[0];
+  if (pos >= 17) return FASES[1];
+  if (pos >= 9)  return FASES[2];
+  if (pos >= 5)  return FASES[3];
+  if (pos >= 3)  return FASES[4];
+  return FASES[5];
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [usuarios, setUsuarios] = useState<UsuarioConPrediccion[]>([]);
@@ -27,6 +53,7 @@ export default function AdminPage() {
   const [filtroSegundo, setFiltroSegundo] = useState('Todos');
   const [filtroTercero, setFiltroTercero] = useState('Todos');
   const [filtroEcuador, setFiltroEcuador] = useState('Todas');
+  const [filtroFase, setFiltroFase] = useState('Todas');
 
   useEffect(() => {
     Promise.all([
@@ -80,10 +107,11 @@ export default function AdminPage() {
       const matchSegundo = filtroSegundo === 'Todos' || u.prediccion?.segundoPuesto === filtroSegundo;
       const matchTercero = filtroTercero === 'Todos' || u.prediccion?.tercerPuesto === filtroTercero;
       const matchEcuador = filtroEcuador === 'Todas' || String(u.prediccion?.ecuadorPosicion) === filtroEcuador;
+      const matchFase = filtroFase === 'Todas' || (u.prediccion ? getFase(u.prediccion.ecuadorPosicion).label === filtroFase : false);
       return matchBusqueda && matchNivel && matchCarrera && matchApuesta &&
-             matchPrimero && matchSegundo && matchTercero && matchEcuador;
+             matchPrimero && matchSegundo && matchTercero && matchEcuador && matchFase;
     });
-  }, [usuarios, busqueda, filtroNivel, filtroCarrera, filtroApuesta, filtroPrimero, filtroSegundo, filtroTercero, filtroEcuador]);
+  }, [usuarios, busqueda, filtroNivel, filtroCarrera, filtroApuesta, filtroPrimero, filtroSegundo, filtroTercero, filtroEcuador, filtroFase]);
 
   const conApuesta = usuarios.filter(u => u.prediccion !== null).length;
   const sinApuesta = usuarios.length - conApuesta;
@@ -267,8 +295,8 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Fila 2: filtros por apuesta */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
+          {/* Fila 2: filtros por apuesta — podio */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
             <div>
               <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,214,0,.6)' }}>🥇 1° Puesto</p>
               <select value={filtroPrimero} onChange={e => setFiltroPrimero(e.target.value)} className={selectCls}>
@@ -287,10 +315,23 @@ export default function AdminPage() {
                 {paisesUnicos('tercerPuesto').map(p => <option key={p} value={p}>{p === 'Todos' ? 'Todos' : p}</option>)}
               </select>
             </div>
+          </div>
+
+          {/* Fila 3: Ecuador */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(57,255,20,.6)' }}>🇪🇨 Ecuador — Posición</p>
+              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(57,255,20,.6)' }}>🇪🇨 Ecuador — Posición exacta</p>
               <select value={filtroEcuador} onChange={e => setFiltroEcuador(e.target.value)} className={selectCls}>
-                {ECUADOR_OPTS.map(p => <option key={p} value={p}>{p === 'Todas' ? 'Todas' : `Puesto #${p}`}</option>)}
+                {ECUADOR_OPTS.map(p => <option key={p} value={p}>{p === 'Todas' ? 'Todas las posiciones' : `Puesto #${p}`}</option>)}
+              </select>
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(191,0,255,.7)' }}>⚽ Ecuador — Fase de la Copa</p>
+              <select value={filtroFase} onChange={e => setFiltroFase(e.target.value)} className={selectCls}>
+                <option value="Todas">Todas las fases</option>
+                {FASES.map(f => (
+                  <option key={f.label} value={f.label}>{f.icon} {f.label} ({f.equipos} equipos)</option>
+                ))}
               </select>
             </div>
           </div>
@@ -313,7 +354,7 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,0,128,.15)', background: 'rgba(255,0,128,.05)' }}>
-                    {['#', 'Estudiante', 'Semestre', 'Carrera', '1° Puesto', '2° Puesto', '3° Puesto', 'Ecuador', 'Fecha'].map(h => (
+                    {['#', 'Estudiante', 'Semestre', 'Carrera', '1° Puesto', '2° Puesto', '3° Puesto', 'Ecuador', 'Fase 🇪🇨', 'Fecha'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest"
                         style={{ color: 'rgba(0,229,255,.7)' }}>{h}</th>
                     ))}
@@ -350,6 +391,35 @@ export default function AdminPage() {
                               style={{ background: 'rgba(57,255,20,.1)', color: '#39ff14', border: '1px solid rgba(57,255,20,.2)' }}>
                               #{u.prediccion.ecuadorPosicion}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {(() => {
+                              const fase = getFase(u.prediccion.ecuadorPosicion);
+                              return (
+                                <div className="flex flex-col gap-1 min-w-[130px]">
+                                  <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
+                                    style={{ background: `${fase.color}18`, color: fase.color, border: `1px solid ${fase.color}40` }}>
+                                    {fase.icon} {fase.short}
+                                  </span>
+                                  <div className="flex gap-0.5 items-center">
+                                    {FASES.map((f, idx) => {
+                                      const fasesOrden = FASES.map(x => x.label);
+                                      const faseIdx = fasesOrden.indexOf(fase.label);
+                                      const activo = idx <= faseIdx;
+                                      return (
+                                        <div key={f.label}
+                                          title={f.label}
+                                          className="h-1.5 flex-1 rounded-full transition-all"
+                                          style={{ background: activo ? f.color : 'rgba(255,255,255,.08)' }} />
+                                      );
+                                    })}
+                                  </div>
+                                  <span className="text-[9px]" style={{ color: 'rgba(240,230,255,.3)' }}>
+                                    {fase.equipos} equipos
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3 text-[10px] font-mono" style={{ color: 'rgba(240,230,255,.3)' }}>
                             {new Date(u.prediccion.creadoEn).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: '2-digit' })}

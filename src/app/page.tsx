@@ -6,6 +6,88 @@ import Image from 'next/image';
 import { ShieldCheck, UserCheck, Calendar, ArrowRight, Activity, Zap, ScrollText, CheckCircle2, XCircle, Trophy, Flag, AlertTriangle } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 
+// Partido inaugural: México vs ?, 11 jun 2026 14:00 hora Ecuador (UTC-5) = 19:00 UTC
+const MUNDIAL_DATE = new Date('2026-06-11T19:00:00Z');
+
+function useCountdown(target: Date) {
+  const calc = () => {
+    const diff = target.getTime() - Date.now();
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, started: true };
+    return {
+      days: Math.floor(diff / 86400000),
+      hours: Math.floor((diff % 86400000) / 3600000),
+      minutes: Math.floor((diff % 3600000) / 60000),
+      seconds: Math.floor((diff % 60000) / 1000),
+      started: false,
+    };
+  };
+  const [time, setTime] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
+function CountdownUnit({ value, label, color }: { value: number; label: string; color: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div
+        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-black text-2xl sm:text-3xl tabular-nums"
+        style={{
+          background: `${color}0d`,
+          border: `1px solid ${color}40`,
+          boxShadow: `0 0 18px ${color}25`,
+          color,
+        }}
+      >
+        {String(value).padStart(2, '0')}
+      </div>
+      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${color}80` }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function WorldCupCountdown() {
+  const { days, hours, minutes, seconds, started } = useCountdown(MUNDIAL_DATE);
+
+  if (started) {
+    return (
+      <div
+        className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-black"
+        style={{ background: 'rgba(57,255,20,.07)', border: '1px solid rgba(57,255,20,.35)', color: '#39ff14' }}
+      >
+        ⚽ ¡El Mundial ya comenzó! Haz tu predicción ahora.
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-3xl px-6 py-5 flex flex-col items-center gap-4"
+      style={{ background: 'rgba(12,0,26,.75)', border: '1px solid rgba(255,214,0,.25)', boxShadow: '0 0 40px rgba(255,214,0,.08)' }}
+    >
+      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,214,0,.7)' }}>
+        ⏳ Cuenta regresiva — Partido Inaugural
+      </p>
+      <div className="flex items-end gap-3 sm:gap-4">
+        <CountdownUnit value={days}    label="días"     color="#ffd600" />
+        <span className="text-2xl font-black neon-text-yellow mb-5 select-none">:</span>
+        <CountdownUnit value={hours}   label="horas"    color="#00e5ff" />
+        <span className="text-2xl font-black neon-text-cyan mb-5 select-none">:</span>
+        <CountdownUnit value={minutes} label="minutos"  color="#ff0080" />
+        <span className="text-2xl font-black neon-text-pink mb-5 select-none">:</span>
+        <CountdownUnit value={seconds} label="segundos" color="#bf00ff" />
+      </div>
+      <p className="text-[10px] font-medium" style={{ color: 'rgba(240,230,255,.35)' }}>
+        🇲🇽 México — Jueves 11 jun 2026 · 14:00 hora Ecuador
+      </p>
+    </div>
+  );
+}
+
 const REGLAS = [
   {
     icon: Trophy,
@@ -316,8 +398,13 @@ export default function Home() {
           Regístrate con tu correo institucional, predice el podio y pasa el semestre.
         </p>
 
+        {/* Countdown */}
+        <div className="mt-8 w-full max-w-sm sm:max-w-md">
+          <WorldCupCountdown />
+        </div>
+
         {/* CTA Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-sm sm:max-w-none">
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-sm sm:max-w-none">
           {loading ? (
             <Spinner />
           ) : user ? (
