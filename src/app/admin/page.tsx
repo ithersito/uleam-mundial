@@ -13,7 +13,6 @@ import { PAISES_REGIONES, FASES_COPA, getFaseCopa } from '@/lib/constants';
 
 const NIVELES  = ['Todos', '1ro', '2do', '3ro', '4to', '5to', '6to', '7mo', '8vo'];
 const CARRERAS = ['Todas', 'Tecnología de la Información', 'Ingeniería en Software'];
-const ECUADOR_OPTS = ['Todas', ...Array.from({ length: 48 }, (_, i) => String(i + 1))];
 
 const RES_MAP: Record<ResultadoPartido, { label: string; color: string }> = {
   ecuador: { label: '🇪🇨 Gana',  color: '#39ff14' },
@@ -30,7 +29,7 @@ const PARTIDOS_DEF = [
 const INIT_FILTROS = {
   busqueda: '', nivel: 'Todos', carrera: 'Todas', apuesta: 'todos' as 'todos' | 'con' | 'sin',
   primero: 'Todos', segundo: 'Todos', tercero: 'Todos',
-  ecuador: 'Todas', fase: 'Todas',
+  fase: 'Todas',
   p1: 'todas', p2: 'todas', p3: 'todas',
 };
 
@@ -162,7 +161,6 @@ export default function AdminPage() {
     if (filtros.primero !== 'Todos' && u.prediccion?.primerPuesto  !== filtros.primero) return false;
     if (filtros.segundo !== 'Todos' && u.prediccion?.segundoPuesto !== filtros.segundo) return false;
     if (filtros.tercero !== 'Todos' && u.prediccion?.tercerPuesto  !== filtros.tercero) return false;
-    if (filtros.ecuador !== 'Todas' && String(u.prediccion?.ecuadorPosicion) !== filtros.ecuador) return false;
     if (filtros.fase !== 'Todas' && (u.prediccion ? getFaseCopa(u.prediccion.ecuadorPosicion).label !== filtros.fase : true)) return false;
     if (filtros.p1 !== 'todas' && u.prediccionPartidos?.partido1 !== filtros.p1) return false;
     if (filtros.p2 !== 'todas' && u.prediccionPartidos?.partido2 !== filtros.p2) return false;
@@ -605,19 +603,27 @@ export default function AdminPage() {
           </div>
 
           {/* Fila 3: Ecuador */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
+          <div className="grid grid-cols-1 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(57,255,20,.6)' }}>🇪🇨 Ecuador — Posición exacta</p>
-              <select value={filtros.ecuador} onChange={e => setF('ecuador', e.target.value)} className={sel}>
-                {ECUADOR_OPTS.map(p => <option key={p} value={p}>{p === 'Todas' ? 'Todas las posiciones' : `Puesto #${p}`}</option>)}
-              </select>
-            </div>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(191,0,255,.7)' }}>⚽ Ecuador — Fase de la Copa</p>
-              <select value={filtros.fase} onChange={e => setF('fase', e.target.value)} className={sel}>
-                <option value="Todas">Todas las fases</option>
-                {FASES_COPA.map(f => <option key={f.label} value={f.label}>{f.icon} {f.label} ({f.equipos} eq.)</option>)}
-              </select>
+              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(57,255,20,.7)' }}>🇪🇨 Ecuador — Fase de la Copa</p>
+              <div className="flex flex-wrap gap-2">
+                {['Todas', ...FASES_COPA.map(f => f.label)].map(v => {
+                  const fase = FASES_COPA.find(f => f.label === v);
+                  const isAll = v === 'Todas';
+                  const active = filtros.fase === v;
+                  return (
+                    <button key={v} onClick={() => setF('fase', v)}
+                      className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105"
+                      style={{
+                        background: active ? (fase ? `${fase.color}20` : 'rgba(57,255,20,.15)') : 'rgba(255,255,255,.03)',
+                        border: `1px solid ${active ? (fase?.color ?? '#39ff14') + '60' : 'rgba(255,255,255,.08)'}`,
+                        color: active ? (fase?.color ?? '#39ff14') : 'rgba(240,230,255,.4)',
+                      }}>
+                      {isAll ? 'Todas las fases' : `${fase?.icon} ${fase?.short}`}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -682,7 +688,7 @@ export default function AdminPage() {
                       style={{ color: 'rgba(255,214,0,.5)', borderLeft: '1px solid rgba(255,214,0,.1)' }}>
                       🏆 Podio
                     </th>
-                    <th colSpan={2} className="px-4 py-1.5 text-left text-[9px] font-black uppercase tracking-widest"
+                    <th colSpan={1} className="px-4 py-1.5 text-left text-[9px] font-black uppercase tracking-widest"
                       style={{ color: 'rgba(57,255,20,.5)', borderLeft: '1px solid rgba(57,255,20,.1)' }}>
                       🇪🇨 Ecuador
                     </th>
@@ -707,8 +713,7 @@ export default function AdminPage() {
                       { h: '2° Puesto',    color: 'rgba(0,229,255,.7)'   },
                       { h: '3° Puesto',    color: 'rgba(255,109,0,.8)'   },
                       { h: 'Fecha',        color: 'rgba(240,230,255,.3)' },
-                      { h: 'Posición',     color: 'rgba(57,255,20,.7)',   bl: true },
-                      { h: 'Fase',         color: 'rgba(57,255,20,.7)'   },
+                      { h: 'Fase Ecuador', color: 'rgba(57,255,20,.7)',   bl: true },
                       { h: 'vs C. Marfil', color: '#ff6d00',              bl: true },
                       { h: 'vs Curazao',   color: '#00e5ff'               },
                       { h: 'vs Alemania',  color: '#bf00ff'               },
@@ -781,34 +786,26 @@ export default function AdminPage() {
                               {new Date(u.prediccion.creadoEn).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: '2-digit' })}
                             </td>
 
-                            {/* Ecuador */}
+                            {/* Ecuador — sólo fase */}
                             <td className="px-4 py-3" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
-                              <div className="flex items-center gap-1">
-                                {score.detalles.ecuador && <span className="text-[8px]" title="Correcto">✅</span>}
-                                <span className="px-2 py-1 rounded-lg text-[10px] font-black"
-                                  style={{ background: 'rgba(57,255,20,.1)', color: '#39ff14', border: '1px solid rgba(57,255,20,.2)' }}>
-                                  #{u.prediccion.ecuadorPosicion}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
                               {(() => {
                                 const fase = getFaseCopa(u.prediccion!.ecuadorPosicion);
+                                const faseIdx = FASES_COPA.indexOf(fase);
                                 return (
                                   <div className="flex flex-col gap-1 min-w-[110px]">
-                                    <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
-                                      style={{ background: `${fase.color}18`, color: fase.color, border: `1px solid ${fase.color}40` }}>
-                                      {fase.icon} {fase.short}
-                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      {score.detalles.ecuador && <span className="text-[8px]" title="Correcto">✅</span>}
+                                      <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
+                                        style={{ background: `${fase.color}18`, color: fase.color, border: `1px solid ${fase.color}40` }}>
+                                        {fase.icon} {fase.label}
+                                      </span>
+                                    </div>
                                     <div className="flex gap-0.5">
-                                      {FASES_COPA.map((f, idx) => {
-                                        const faseIdx = FASES_COPA.indexOf(fase);
-                                        return (
-                                          <div key={f.label} title={f.label}
-                                            className="h-1 flex-1 rounded-full"
-                                            style={{ background: idx <= faseIdx ? f.color : 'rgba(255,255,255,.08)' }} />
-                                        );
-                                      })}
+                                      {FASES_COPA.map((f, idx) => (
+                                        <div key={f.label} title={f.label}
+                                          className="h-1 flex-1 rounded-full"
+                                          style={{ background: idx <= faseIdx ? f.color : 'rgba(255,255,255,.08)' }} />
+                                      ))}
                                     </div>
                                   </div>
                                 );
@@ -864,7 +861,7 @@ export default function AdminPage() {
                             </td>
                           </>
                         ) : (
-                          <td colSpan={11} className="px-4 py-3 text-center" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
+                          <td colSpan={10} className="px-4 py-3 text-center" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
                             <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg"
                               style={{ background: 'rgba(255,109,0,.08)', color: 'rgba(255,109,0,.6)', border: '1px solid rgba(255,109,0,.2)' }}>
                               Sin apuesta

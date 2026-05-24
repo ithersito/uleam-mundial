@@ -705,6 +705,38 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Sistema de Puntos */}
+          <div className="casino-card p-5 rounded-3xl">
+            <h4 className="text-[9px] font-black uppercase tracking-widest mb-4 flex items-center gap-2"
+              style={{ color: 'rgba(255,214,0,.8)' }}>
+              <span className="w-1 h-4 rounded inline-block" style={{ background: '#ffd600', boxShadow: '0 0 6px #ffd600' }} />
+              ⭐ Sistema de Puntos — {MAX_PUNTAJE} pts máx
+            </h4>
+            <div className="space-y-1.5">
+              {[
+                { label: '🥇 Campeón correcto',       pts: 3, color: '#ffd600' },
+                { label: '🥈 Subcampeón correcto',    pts: 2, color: '#00e5ff' },
+                { label: '🥉 3° Lugar correcto',      pts: 1, color: '#ff6d00' },
+                { label: '🇪🇨 Fase Ecuador correcta', pts: 5, color: '#39ff14' },
+                { label: '⚽ Partido 1 correcto',      pts: 2, color: '#ff6d00' },
+                { label: '⚽ Partido 2 correcto',      pts: 2, color: '#00e5ff' },
+                { label: '⚽ Partido 3 correcto',      pts: 2, color: '#bf00ff' },
+              ].map(({ label, pts, color }) => (
+                <div key={label} className="flex items-center justify-between px-3 py-2 rounded-xl"
+                  style={{ background: `${color}07`, border: `1px solid ${color}18` }}>
+                  <span className="text-[10px] font-bold" style={{ color: 'rgba(240,230,255,.7)' }}>{label}</span>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-lg"
+                    style={{ background: `${color}18`, color, border: `1px solid ${color}40` }}>
+                    {pts} pt{pts !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] mt-3 text-center" style={{ color: 'rgba(240,230,255,.25)' }}>
+              Ecuador se evalúa por <strong style={{ color: 'rgba(57,255,20,.5)' }}>fase</strong> alcanzada, no posición exacta.
+            </p>
+          </div>
+
         </div>
 
         {/* ── Right column ── */}
