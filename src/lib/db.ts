@@ -35,7 +35,7 @@ function initLocalDB(): LocalDB {
     return JSON.parse(content);
   } catch (error) {
     console.error('Error leyendo la base de datos local:', error);
-    return { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [] };
+    return { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [], prediccionesPartidos: [] };
   }
 }
 
