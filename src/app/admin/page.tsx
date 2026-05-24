@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Filter, Trophy, LogOut, Search, GraduationCap, BookOpen, Lock, Unlock, AlertTriangle } from 'lucide-react';
+import { Users, Filter, Trophy, LogOut, Search, GraduationCap, BookOpen, Lock, Unlock, AlertTriangle, Trash2 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
-import { UsuarioConPrediccion } from '@/types';
+import { UsuarioConPrediccion, ResultadoPartido } from '@/types';
 
 const NIVELES = ['Todos', '1ro', '2do', '3ro', '4to', '5to', '6to', '7mo', '8vo'];
 const CARRERAS = ['Todas', 'Tecnología de la Información', 'Ingeniería en Software'];
@@ -44,6 +44,8 @@ export default function AdminPage() {
   const [prediccionesAbiertas, setPrediccionesAbiertas] = useState<boolean | null>(null);
   const [toggling, setToggling] = useState(false);
   const [confirmarCierre, setConfirmarCierre] = useState(false);
+  const [borrandoId, setBorrandoId] = useState<string | null>(null);
+  const [confirmarBorrado, setConfirmarBorrado] = useState<{ id: string; nombre: string } | null>(null);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroNivel, setFiltroNivel] = useState('Todos');
@@ -54,6 +56,9 @@ export default function AdminPage() {
   const [filtroTercero, setFiltroTercero] = useState('Todos');
   const [filtroEcuador, setFiltroEcuador] = useState('Todas');
   const [filtroFase, setFiltroFase] = useState('Todas');
+  const [filtroP1, setFiltroP1] = useState('todas');
+  const [filtroP2, setFiltroP2] = useState('todas');
+  const [filtroP3, setFiltroP3] = useState('todas');
 
   useEffect(() => {
     Promise.all([
@@ -70,6 +75,21 @@ export default function AdminPage() {
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
+  };
+
+  const handleBorrarPrediccion = async () => {
+    if (!confirmarBorrado) return;
+    const { id } = confirmarBorrado;
+    setConfirmarBorrado(null);
+    setBorrandoId(id);
+    try {
+      const res = await fetch(`/api/admin/predictions/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setUsuarios(prev => prev.map(u => u.id === id ? { ...u, prediccion: null } : u));
+      }
+    } finally {
+      setBorrandoId(null);
+    }
   };
 
   const handleToggle = async () => {
@@ -108,10 +128,14 @@ export default function AdminPage() {
       const matchTercero = filtroTercero === 'Todos' || u.prediccion?.tercerPuesto === filtroTercero;
       const matchEcuador = filtroEcuador === 'Todas' || String(u.prediccion?.ecuadorPosicion) === filtroEcuador;
       const matchFase = filtroFase === 'Todas' || (u.prediccion ? getFase(u.prediccion.ecuadorPosicion).label === filtroFase : false);
+      const matchP1 = filtroP1 === 'todas' || u.prediccionPartidos?.partido1 === filtroP1;
+      const matchP2 = filtroP2 === 'todas' || u.prediccionPartidos?.partido2 === filtroP2;
+      const matchP3 = filtroP3 === 'todas' || u.prediccionPartidos?.partido3 === filtroP3;
       return matchBusqueda && matchNivel && matchCarrera && matchApuesta &&
-             matchPrimero && matchSegundo && matchTercero && matchEcuador && matchFase;
+             matchPrimero && matchSegundo && matchTercero && matchEcuador && matchFase &&
+             matchP1 && matchP2 && matchP3;
     });
-  }, [usuarios, busqueda, filtroNivel, filtroCarrera, filtroApuesta, filtroPrimero, filtroSegundo, filtroTercero, filtroEcuador, filtroFase]);
+  }, [usuarios, busqueda, filtroNivel, filtroCarrera, filtroApuesta, filtroPrimero, filtroSegundo, filtroTercero, filtroEcuador, filtroFase, filtroP1, filtroP2, filtroP3]);
 
   const conApuesta = usuarios.filter(u => u.prediccion !== null).length;
   const sinApuesta = usuarios.length - conApuesta;
@@ -156,6 +180,39 @@ export default function AdminPage() {
                 className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider"
                 style={{ background: 'linear-gradient(135deg, #ff6d00, #ff0080)', color: '#fff', boxShadow: '0 0 16px rgba(255,109,0,.4)' }}>
                 Sí, cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar borrado de predicción */}
+      {confirmarBorrado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(6,0,15,.92)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-sm rounded-3xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,0,128,.4)', boxShadow: '0 0 40px rgba(255,0,128,.2)' }}>
+            <div className="px-6 py-5 flex items-center gap-3"
+              style={{ background: 'rgba(255,0,128,.06)', borderBottom: '1px solid rgba(255,0,128,.2)' }}>
+              <Trash2 className="w-6 h-6 flex-shrink-0" style={{ color: '#ff0080' }} />
+              <div>
+                <p className="font-black text-sm" style={{ color: '#ff0080' }}>¿Borrar predicción?</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'rgba(240,230,255,.4)' }}>Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 text-xs leading-relaxed" style={{ background: 'rgba(12,0,26,.9)', color: 'rgba(240,230,255,.6)' }}>
+              Se eliminará la predicción de <strong className="text-white">{confirmarBorrado.nombre}</strong>. El estudiante podrá volver a enviar una nueva (si las predicciones están abiertas).
+            </div>
+            <div className="px-6 py-4 flex gap-3" style={{ background: 'rgba(6,0,15,.95)', borderTop: '1px solid rgba(255,0,128,.15)' }}>
+              <button onClick={() => setConfirmarBorrado(null)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider"
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(240,230,255,.5)' }}>
+                Cancelar
+              </button>
+              <button onClick={handleBorrarPrediccion}
+                className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5"
+                style={{ background: 'linear-gradient(135deg, #ff0080, #bf00ff)', color: '#fff', boxShadow: '0 0 16px rgba(255,0,128,.4)' }}>
+                <Trash2 className="w-3.5 h-3.5" /> Sí, borrar
               </button>
             </div>
           </div>
@@ -335,6 +392,82 @@ export default function AdminPage() {
               </select>
             </div>
           </div>
+
+          {/* Fila 4: Partidos Grupo E */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
+            {([
+              { label: '🟠 14/6 vs Costa de Marfil', hex: '#ff6d00', val: filtroP1, set: setFiltroP1 },
+              { label: '🔵 20/6 vs Curazao',         hex: '#00e5ff', val: filtroP2, set: setFiltroP2 },
+              { label: '🟣 25/6 vs Alemania',         hex: '#bf00ff', val: filtroP3, set: setFiltroP3 },
+            ] as const).map(({ label, hex, val, set }) => (
+              <div key={label}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: hex + 'aa' }}>{label}</p>
+                <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${hex}40` }}>
+                  {([
+                    { v: 'todas',   txt: 'Todos' },
+                    { v: 'ecuador', txt: '🇪🇨 Gana' },
+                    { v: 'empate',  txt: '🤝 Empate' },
+                    { v: 'rival',   txt: '❌ Rival' },
+                  ] as const).map(({ v, txt }, i, arr) => (
+                    <button key={v} onClick={() => set(v)}
+                      className="flex-1 py-2 text-[9px] font-black uppercase tracking-wide transition-all"
+                      style={{
+                        background: val === v ? hex + '25' : 'transparent',
+                        color: val === v ? hex : 'rgba(240,230,255,.35)',
+                        borderRight: i < arr.length - 1 ? `1px solid ${hex}20` : 'none',
+                      }}>
+                      {txt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Partidos de Ecuador */}
+        <div className="casino-card p-5 rounded-2xl mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-base">⚽</span>
+            <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#00e5ff' }}>
+              Partidos de Ecuador — Grupo E
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { fecha: '14/6', hora: '6:00 p.m.', rival: 'Costa de Marfil', rivalFlag: '🇨🇮', color: '#ff6d00' },
+              { fecha: '20/6', hora: '7:00 p.m.', rival: 'Curazao',         rivalFlag: '🇨🇼', color: '#00e5ff' },
+              { fecha: '25/6', hora: '3:00 p.m.', rival: 'Alemania',        rivalFlag: '🇩🇪', color: '#bf00ff' },
+            ].map((m) => (
+              <div key={m.fecha} className="rounded-2xl overflow-hidden"
+                style={{ border: `1px solid ${m.color}30`, background: `${m.color}06` }}>
+                <div className="px-3 py-1.5 flex items-center justify-between"
+                  style={{ borderBottom: `1px solid ${m.color}20`, background: `${m.color}0a` }}>
+                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${m.color}aa` }}>
+                    Copa Mundial · Grupo E
+                  </span>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black" style={{ color: m.color }}>{m.fecha}</p>
+                    <p className="text-[9px]" style={{ color: `${m.color}80` }}>{m.hora}</p>
+                  </div>
+                </div>
+                <div className="px-3 py-3 flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                    <span className="text-xl leading-none shrink-0">🇪🇨</span>
+                    <span className="text-xs font-black truncate" style={{ color: m.color }}>Ecuador</span>
+                  </div>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0"
+                    style={{ background: 'rgba(255,255,255,.05)', color: 'rgba(240,230,255,.4)', border: '1px solid rgba(255,255,255,.08)' }}>
+                    VS
+                  </span>
+                  <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
+                    <span className="text-xs font-black text-white truncate text-right">{m.rival}</span>
+                    <span className="text-xl leading-none shrink-0">{m.rivalFlag}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Tabla */}
@@ -354,7 +487,7 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,0,128,.15)', background: 'rgba(255,0,128,.05)' }}>
-                    {['#', 'Estudiante', 'Semestre', 'Carrera', '1° Puesto', '2° Puesto', '3° Puesto', 'Ecuador', 'Fase 🇪🇨', 'Fecha'].map(h => (
+                    {['#', 'Estudiante', 'Semestre', 'Carrera', '1° Puesto', '2° Puesto', '3° Puesto', 'Ecuador', 'Fase 🇪🇨', 'Fecha', 'vs Costa de Marfil', 'vs Curazao', 'vs Alemania', ''].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest"
                         style={{ color: 'rgba(0,229,255,.7)' }}>{h}</th>
                     ))}
@@ -424,9 +557,44 @@ export default function AdminPage() {
                           <td className="px-4 py-3 text-[10px] font-mono" style={{ color: 'rgba(240,230,255,.3)' }}>
                             {new Date(u.prediccion.creadoEn).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: '2-digit' })}
                           </td>
+                          {/* Predicciones de partidos */}
+                          {(() => {
+                            const COLORES: Record<ResultadoPartido, { label: string; color: string }> = {
+                              ecuador: { label: '🇪🇨 Gana', color: '#39ff14' },
+                              empate:  { label: '🤝 Empate', color: '#ffd600' },
+                              rival:   { label: '❌ Rival',  color: '#ff0080' },
+                            };
+                            const vals = u.prediccionPartidos
+                              ? [u.prediccionPartidos.partido1, u.prediccionPartidos.partido2, u.prediccionPartidos.partido3] as ResultadoPartido[]
+                              : null;
+                            return [0, 1, 2].map(i => (
+                              <td key={i} className="px-4 py-3">
+                                {vals ? (
+                                  <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
+                                    style={{ background: `${COLORES[vals[i]].color}18`, color: COLORES[vals[i]].color, border: `1px solid ${COLORES[vals[i]].color}40` }}>
+                                    {COLORES[vals[i]].label}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px]" style={{ color: 'rgba(240,230,255,.2)' }}>—</span>
+                                )}
+                              </td>
+                            ));
+                          })()}
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => setConfirmarBorrado({ id: u.id, nombre: u.nombreCompleto })}
+                              disabled={borrandoId === u.id}
+                              title="Borrar predicción"
+                              className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
+                              style={{ background: 'rgba(255,0,128,.08)', border: '1px solid rgba(255,0,128,.25)', color: '#ff0080' }}>
+                              {borrandoId === u.id
+                                ? <Spinner size="sm" />
+                                : <Trash2 className="w-3.5 h-3.5" />}
+                            </button>
+                          </td>
                         </>
                       ) : (
-                        <td colSpan={5} className="px-4 py-3 text-center">
+                        <td colSpan={9} className="px-4 py-3 text-center">
                           <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-lg"
                             style={{ background: 'rgba(255,109,0,.1)', color: 'rgba(255,109,0,.7)', border: '1px solid rgba(255,109,0,.2)' }}>
                             Sin apuesta

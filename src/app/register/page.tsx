@@ -13,9 +13,11 @@ export default function Register() {
   const router = useRouter();
   const { showToast } = useToast();
 
+  const EMAIL_SUFFIX = '@live.uleam.edu.ec';
+
   const [formData, setFormData] = useState({
     nombreCompleto: '',
-    correoInstitucional: '',
+    emailPrefix: '',
     contrasena: '',
     confirmarContrasena: '',
     nivel: '1ro',
@@ -31,14 +33,15 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { nombreCompleto, correoInstitucional, contrasena, confirmarContrasena, nivel, carrera } = formData;
+    const { nombreCompleto, emailPrefix, contrasena, confirmarContrasena, nivel, carrera } = formData;
+    const correoInstitucional = emailPrefix + EMAIL_SUFFIX;
 
-    if (!nombreCompleto || !correoInstitucional || !contrasena || !confirmarContrasena || !nivel || !carrera) {
+    if (!nombreCompleto || !emailPrefix || !contrasena || !confirmarContrasena || !nivel || !carrera) {
       showToast('Por favor, completa todos los campos del registro.', 'error');
       return;
     }
     if (!validateUleamEmail(correoInstitucional)) {
-      showToast('El correo institucional debe iniciar con "e" y números. Ejemplo: e1234567890@live.uleam.edu.ec', 'error');
+      showToast('El correo debe iniciar con "e" seguido de tu ID numérico. Ejemplo: e1234567890', 'error');
       return;
     }
     if (contrasena !== confirmarContrasena) {
@@ -55,7 +58,7 @@ export default function Register() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, correoInstitucional }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -144,27 +147,31 @@ export default function Register() {
 
             {/* Institutional Email */}
             <div>
-              <label htmlFor="correoInstitucional" className={labelClass} style={{ color: 'rgba(0,229,255,.8)' }}>
+              <label htmlFor="emailPrefix" className={labelClass} style={{ color: 'rgba(0,229,255,.8)' }}>
                 Correo Institucional
               </label>
-              <div className="relative">
-                <div className={iconWrap} style={{ color: 'rgba(255,0,128,.6)' }}>
-                  <Mail className="w-4 h-4" />
+              <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,0,128,.3)', background: 'rgba(6,0,15,.6)' }}>
+                <div className="pl-4 pr-2 flex items-center" style={{ color: 'rgba(255,0,128,.6)' }}>
+                  <Mail className="w-4 h-4 shrink-0" />
                 </div>
                 <input
-                  id="correoInstitucional"
-                  name="correoInstitucional"
-                  type="email"
+                  id="emailPrefix"
+                  name="emailPrefix"
+                  type="text"
                   required
-                  placeholder="e1234567890@live.uleam.edu.ec"
-                  value={formData.correoInstitucional}
+                  placeholder="e1234567890"
+                  value={formData.emailPrefix}
                   onChange={handleChange}
                   disabled={loading}
-                  className={inputClass}
+                  className="flex-1 py-3 text-sm bg-transparent outline-none min-w-0"
+                  style={{ color: '#f0e6ff' }}
                 />
+                <span className="pr-4 text-sm font-bold shrink-0 select-none" style={{ color: 'rgba(0,229,255,.7)' }}>
+                  @live.uleam.edu.ec
+                </span>
               </div>
               <p className="text-[10px] font-medium mt-1.5" style={{ color: 'rgba(240,230,255,.35)' }}>
-                * Debe iniciar con "e" seguido de tu ID numérico y terminar en @live.uleam.edu.ec
+                * Solo escribe tu ID numérico con "e" al inicio
               </p>
             </div>
 

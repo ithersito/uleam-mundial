@@ -11,10 +11,22 @@ export interface Usuario {
 
 export interface UsuarioConPrediccion extends Omit<Usuario, 'contrasenaHash'> {
   prediccion: Prediccion | null;
+  prediccionPartidos: PrediccionPartidos | null;
 }
 
 export interface Configuracion {
   prediccionesAbiertas: boolean;
+}
+
+export type ResultadoPartido = 'ecuador' | 'empate' | 'rival';
+
+export interface PrediccionPartidos {
+  id: string;
+  usuarioId: string;
+  partido1: ResultadoPartido; // 14/6 vs Costa de Marfil
+  partido2: ResultadoPartido; // 20/6 vs Curazao
+  partido3: ResultadoPartido; // 25/6 vs Alemania
+  creadoEn: string;
 }
 
 export interface Prediccion {

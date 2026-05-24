@@ -5,8 +5,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, LogOut, ShieldAlert, Award, Calendar,
-  CheckCircle2, Lock, User, Briefcase, GraduationCap, Zap, AlertTriangle,
+  CheckCircle2, Lock, User, Briefcase, GraduationCap, Zap, AlertTriangle, Swords,
 } from 'lucide-react';
+import { ResultadoPartido, PrediccionPartidos } from '@/types';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { MUNDIAL_START } from '@/lib/constants';
@@ -57,10 +58,17 @@ export default function Dashboard() {
 
   const [usuario, setUsuario] = useState<any>(null);
   const [prediccion, setPrediccion] = useState<any>(null);
+  const [prediccionPartidos, setPrediccionPartidos] = useState<PrediccionPartidos | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPartidos, setSavingPartidos] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [mostrarConfirmacionPartidos, setMostrarConfirmacionPartidos] = useState(false);
   const [mundialStarted, setMundialStarted] = useState(() => Date.now() >= MUNDIAL_START.getTime());
+
+  const [formPartidos, setFormPartidos] = useState<{ p1: ResultadoPartido | ''; p2: ResultadoPartido | ''; p3: ResultadoPartido | '' }>({
+    p1: '', p2: '', p3: '',
+  });
 
   const [form, setForm] = useState({
     primerPuesto: '',
@@ -84,10 +92,17 @@ export default function Dashboard() {
         const dataUser = await resUser.json();
         setUsuario(dataUser.usuario);
 
-        const resPred = await fetch('/api/predictions');
+        const [resPred, resPart] = await Promise.all([
+          fetch('/api/predictions'),
+          fetch('/api/predictions/partidos'),
+        ]);
         if (resPred.ok) {
           const dataPred = await resPred.json();
           setPrediccion(dataPred.prediccion);
+        }
+        if (resPart.ok) {
+          const dataPart = await resPart.json();
+          setPrediccionPartidos(dataPart.prediccion);
         }
       } catch (err) {
         console.error('Error al inicializar dashboard:', err);
@@ -118,6 +133,38 @@ export default function Dashboard() {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePartidosSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formPartidos.p1 || !formPartidos.p2 || !formPartidos.p3) {
+      showToast('Por favor, selecciona un resultado para cada partido.', 'error');
+      return;
+    }
+    setMostrarConfirmacionPartidos(true);
+  };
+
+  const handleConfirmarPartidos = async () => {
+    setMostrarConfirmacionPartidos(false);
+    setSavingPartidos(true);
+    try {
+      const res = await fetch('/api/predictions/partidos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partido1: formPartidos.p1, partido2: formPartidos.p2, partido3: formPartidos.p3 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'No se pudo guardar.', 'error');
+      } else {
+        showToast('⚽ ¡Predicciones de partidos guardadas!', 'success');
+        setPrediccionPartidos(data.prediccion);
+      }
+    } catch {
+      showToast('Error de red.', 'error');
+    } finally {
+      setSavingPartidos(false);
+    }
   };
 
   const handleEditClick = () => {
@@ -272,6 +319,59 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── Modal confirmación partidos ── */}
+      {mostrarConfirmacionPartidos && (() => {
+        const PARTIDOS_INFO = [
+          { rival: 'Costa de Marfil', fecha: '14/6' },
+          { rival: 'Curazao',         fecha: '20/6' },
+          { rival: 'Alemania',        fecha: '25/6' },
+        ];
+        const labels: Record<ResultadoPartido, string> = { ecuador: '🇪🇨 Ecuador gana', empate: '🤝 Empate', rival: '❌ Rival gana' };
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(6,0,15,.92)', backdropFilter: 'blur(8px)' }}>
+            <div className="w-full max-w-md rounded-3xl overflow-hidden"
+              style={{ border: '1px solid rgba(0,229,255,.4)', boxShadow: '0 0 60px rgba(0,229,255,.15)' }}>
+              <div className="px-6 py-5 flex items-center gap-3"
+                style={{ background: 'rgba(0,229,255,.06)', borderBottom: '1px solid rgba(0,229,255,.2)' }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: '#00e5ff' }} />
+                <div>
+                  <h2 className="text-base font-black" style={{ color: '#00e5ff' }}>¿Confirmar predicciones?</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(240,230,255,.4)' }}>
+                    Esta acción es irreversible
+                  </p>
+                </div>
+              </div>
+              <div className="px-6 py-5 space-y-3" style={{ background: 'rgba(12,0,26,.85)' }}>
+                {PARTIDOS_INFO.map((p, i) => {
+                  const val = [formPartidos.p1, formPartidos.p2, formPartidos.p3][i] as ResultadoPartido;
+                  return (
+                    <div key={i} className="flex justify-between items-center text-xs rounded-xl px-4 py-2.5"
+                      style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+                      <span style={{ color: 'rgba(240,230,255,.5)' }}>{p.fecha} — Ecuador vs {p.rival}</span>
+                      <strong className="neon-text-cyan">{labels[val]}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="px-6 py-5 flex gap-3"
+                style={{ background: 'rgba(6,0,15,.9)', borderTop: '1px solid rgba(0,229,255,.15)' }}>
+                <button onClick={() => setMostrarConfirmacionPartidos(false)}
+                  className="flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all hover:scale-105"
+                  style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(240,230,255,.5)' }}>
+                  Cancelar
+                </button>
+                <button onClick={handleConfirmarPartidos}
+                  className="flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                  style={{ background: 'linear-gradient(135deg, #00e5ff, #bf00ff)', color: '#fff', boxShadow: '0 0 20px rgba(0,229,255,.3)' }}>
+                  ✅ Sí, confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Ambient blobs */}
       <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full pointer-events-none -z-10"
         style={{ background: 'radial-gradient(circle, rgba(255,0,128,.08) 0%, transparent 70%)' }} />
@@ -394,6 +494,57 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Ecuador match schedule */}
+          <div className="casino-card p-5 rounded-3xl">
+            <h4 className="text-[9px] font-black uppercase tracking-widest mb-4 flex items-center gap-2"
+              style={{ color: 'rgba(0,229,255,.7)' }}>
+              <span className="w-1 h-4 rounded inline-block" style={{ background: '#00e5ff', boxShadow: '0 0 6px #00e5ff' }} />
+              ⚽ Partidos de Ecuador — Grupo E
+            </h4>
+
+            <div className="space-y-3">
+              {[
+                { fecha: '14/6', hora: '6:00 p.m.', rival: 'Costa de Marfil', rivalFlag: '🇨🇮', color: '#ff6d00' },
+                { fecha: '20/6', hora: '7:00 p.m.', rival: 'Curazao',         rivalFlag: '🇨🇼', color: '#00e5ff' },
+                { fecha: '25/6', hora: '3:00 p.m.', rival: 'Alemania',        rivalFlag: '🇩🇪', color: '#bf00ff' },
+              ].map((m) => (
+                <div key={m.fecha}
+                  className="rounded-2xl overflow-hidden"
+                  style={{ border: `1px solid ${m.color}30`, background: `${m.color}06` }}>
+
+                  {/* header */}
+                  <div className="px-3 py-1.5 flex items-center justify-between"
+                    style={{ borderBottom: `1px solid ${m.color}20`, background: `${m.color}0a` }}>
+                    <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${m.color}aa` }}>
+                      Copa Mundial · Grupo E
+                    </span>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black" style={{ color: m.color }}>{m.fecha}</p>
+                      <p className="text-[9px]" style={{ color: `${m.color}80` }}>{m.hora}</p>
+                    </div>
+                  </div>
+
+                  {/* teams — Ecuador siempre a la izquierda */}
+                  <div className="px-3 py-3 flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-2 min-w-0">
+                      <span className="text-xl leading-none shrink-0">🇪🇨</span>
+                      <span className="text-xs font-black truncate" style={{ color: m.color }}>Ecuador</span>
+                    </div>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0"
+                      style={{ background: 'rgba(255,255,255,.05)', color: 'rgba(240,230,255,.4)', border: '1px solid rgba(255,255,255,.08)' }}>
+                      VS
+                    </span>
+                    <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
+                      <span className="text-xs font-black text-white truncate text-right">{m.rival}</span>
+                      <span className="text-xl leading-none shrink-0">{m.rivalFlag}</span>
+                    </div>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          </div>
 
         </div>
 
@@ -676,6 +827,140 @@ export default function Dashboard() {
               </form>
             </div>
           )}
+
+          {/* ── Formulario 3: Predicción de Partidos ── */}
+          {!mundialStarted && (() => {
+            const PARTIDOS = [
+              { key: 'p1' as const, fecha: '14 Jun', hora: '6:00 p.m.', rival: 'Costa de Marfil', rivalFlag: '🇨🇮', color: '#ff6d00' },
+              { key: 'p2' as const, fecha: '20 Jun', hora: '7:00 p.m.', rival: 'Curazao',         rivalFlag: '🇨🇼', color: '#00e5ff' },
+              { key: 'p3' as const, fecha: '25 Jun', hora: '3:00 p.m.', rival: 'Alemania',        rivalFlag: '🇩🇪', color: '#bf00ff' },
+            ];
+            const OPCIONES: { val: ResultadoPartido; label: string; icon: string }[] = [
+              { val: 'ecuador', label: 'Ecuador gana', icon: '🇪🇨' },
+              { val: 'empate',  label: 'Empate',       icon: '🤝' },
+              { val: 'rival',   label: 'Rival gana',   icon: '❌' },
+            ];
+            const labelRes: Record<ResultadoPartido, string> = { ecuador: '🇪🇨 Ecuador gana', empate: '🤝 Empate', rival: '❌ Rival gana' };
+
+            return (
+              <div className="casino-card p-8 rounded-3xl">
+                <div className="pb-5 mb-6 border-b flex items-center gap-3" style={{ borderColor: 'rgba(0,229,255,.15)' }}>
+                  <Swords className="w-5 h-5" style={{ color: '#00e5ff' }} />
+                  <div>
+                    <h3 className="text-xl font-black text-white">
+                      Formulario 3: <span className="neon-text-cyan">Predicción de Partidos</span>
+                    </h3>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(240,230,255,.4)' }}>
+                      ¿Quién ganará cada partido de Ecuador en la fase de grupos?
+                    </p>
+                  </div>
+                </div>
+
+                {prediccionPartidos ? (
+                  /* Estado guardado */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 rounded-2xl mb-4"
+                      style={{ background: 'rgba(57,255,20,.06)', border: '1px solid rgba(57,255,20,.25)' }}>
+                      <CheckCircle2 className="w-5 h-5 shrink-0 neon-text-green" />
+                      <div>
+                        <p className="text-xs font-black neon-text-green">Predicciones guardadas</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: 'rgba(57,255,20,.6)' }}>
+                          {new Date(prediccionPartidos.creadoEn).toLocaleString('es-EC')}
+                        </p>
+                      </div>
+                      <Lock className="w-4 h-4 ml-auto neon-text-green" />
+                    </div>
+                    {PARTIDOS.map((p, i) => {
+                      const res = [prediccionPartidos.partido1, prediccionPartidos.partido2, prediccionPartidos.partido3][i] as ResultadoPartido;
+                      return (
+                        <div key={p.key} className="flex items-center justify-between p-4 rounded-2xl"
+                          style={{ background: `${p.color}08`, border: `1px solid ${p.color}30` }}>
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">🇪🇨</span>
+                            <div>
+                              <p className="text-xs font-black text-white">Ecuador vs {p.rival} {p.rivalFlag}</p>
+                              <p className="text-[9px]" style={{ color: 'rgba(240,230,255,.4)' }}>{p.fecha} — {p.hora}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black px-3 py-1.5 rounded-xl"
+                            style={{ background: `${p.color}18`, color: p.color, border: `1px solid ${p.color}40` }}>
+                            {labelRes[res]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Formulario */
+                  <form onSubmit={handlePartidosSubmit} className="space-y-4">
+                    {PARTIDOS.map((p) => (
+                      <div key={p.key} className="rounded-2xl overflow-hidden"
+                        style={{ border: `1px solid ${p.color}30`, background: `${p.color}06` }}>
+                        {/* Header partido */}
+                        <div className="px-4 py-2.5 flex items-center justify-between"
+                          style={{ borderBottom: `1px solid ${p.color}20`, background: `${p.color}0a` }}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">🇪🇨</span>
+                            <span className="text-xs font-black" style={{ color: p.color }}>Ecuador</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-lg font-black"
+                              style={{ background: 'rgba(255,255,255,.05)', color: 'rgba(240,230,255,.4)', border: '1px solid rgba(255,255,255,.08)' }}>
+                              vs
+                            </span>
+                            <span className="text-xs font-black text-white">{p.rival}</span>
+                            <span className="text-base">{p.rivalFlag}</span>
+                          </div>
+                          <span className="text-[10px] font-black" style={{ color: `${p.color}99` }}>
+                            {p.fecha} · {p.hora}
+                          </span>
+                        </div>
+                        {/* Botones resultado */}
+                        <div className="grid grid-cols-3 gap-2 p-3">
+                          {OPCIONES.map((op) => {
+                            const sel = formPartidos[p.key] === op.val;
+                            return (
+                              <button
+                                key={op.val}
+                                type="button"
+                                disabled={savingPartidos}
+                                onClick={() => setFormPartidos(prev => ({ ...prev, [p.key]: op.val }))}
+                                className="flex flex-col items-center gap-1 py-3 rounded-xl text-center transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50"
+                                style={{
+                                  background: sel ? `${p.color}20` : 'rgba(255,255,255,.03)',
+                                  border: `2px solid ${sel ? p.color : 'rgba(255,255,255,.08)'}`,
+                                  boxShadow: sel ? `0 0 16px ${p.color}30` : 'none',
+                                }}>
+                                <span className="text-xl">{op.icon}</span>
+                                <span className="text-[10px] font-black" style={{ color: sel ? p.color : 'rgba(240,230,255,.6)' }}>
+                                  {op.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={savingPartidos}
+                        className="w-full py-4 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ background: 'linear-gradient(135deg, #00e5ff, #bf00ff)', color: '#fff', boxShadow: '0 0 24px rgba(0,229,255,.3)' }}>
+                        {savingPartidos ? (
+                          <><Spinner size="sm" /> Guardando...</>
+                        ) : (
+                          <><CheckCircle2 className="w-4 h-4" /> ⚽ Enviar Predicciones de Partidos</>
+                        )}
+                      </button>
+                      <p className="text-center text-[10px] font-medium mt-3" style={{ color: 'rgba(240,230,255,.3)' }}>
+                        * Una vez enviadas no podrán modificarse.
+                      </p>
+                    </div>
+                  </form>
+                )}
+              </div>
+            );
+          })()}
 
         </div>
       </main>

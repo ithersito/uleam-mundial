@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Usuario, Prediccion, UsuarioConPrediccion, Configuracion } from '../types';
+import { Usuario, Prediccion, PrediccionPartidos, UsuarioConPrediccion, Configuracion } from '../types';
 
 // Rutas para base de datos local
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -11,6 +11,7 @@ interface LocalDB {
   configuracion: Configuracion;
   usuarios: Usuario[];
   predicciones: Prediccion[];
+  prediccionesPartidos: PrediccionPartidos[];
 }
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -24,7 +25,7 @@ function initLocalDB(): LocalDB {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(DB_FILE)) {
-    const defaultData: LocalDB = { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [] };
+    const defaultData: LocalDB = { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [], prediccionesPartidos: [] };
 
     fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
     return defaultData;
@@ -220,30 +221,35 @@ export const db = {
   async getAllUsersWithPredictions(): Promise<UsuarioConPrediccion[]> {
     if (isSupabaseConfigured) {
       try {
-        const [usuarios, predicciones] = await Promise.all([
+        const [usuarios, predicciones, partidos] = await Promise.all([
           fetchSupabase('usuarios?select=id,nombre_completo,correo_institucional,nivel,carrera,es_admin,creado_en'),
           fetchSupabase('predicciones?select=*'),
+          fetchSupabase('predicciones_partidos?select=*'),
         ]);
-        return (usuarios ?? []).map((u: any) => ({
-          id: u.id,
-          nombreCompleto: u.nombre_completo,
-          correoInstitucional: u.correo_institucional,
-          nivel: u.nivel,
-          carrera: u.carrera,
-          esAdmin: u.es_admin ?? false,
-          creadoEn: u.creado_en,
-          prediccion: (predicciones ?? []).find((p: any) => p.usuario_id === u.id)
-            ? {
-                id: predicciones.find((p: any) => p.usuario_id === u.id).id,
-                usuarioId: u.id,
-                primerPuesto: predicciones.find((p: any) => p.usuario_id === u.id).primer_puesto,
-                segundoPuesto: predicciones.find((p: any) => p.usuario_id === u.id).segundo_puesto,
-                tercerPuesto: predicciones.find((p: any) => p.usuario_id === u.id).tercer_puesto,
-                ecuadorPosicion: predicciones.find((p: any) => p.usuario_id === u.id).ecuador_posicion,
-                creadoEn: predicciones.find((p: any) => p.usuario_id === u.id).creado_en,
-              }
-            : null,
-        }));
+        return (usuarios ?? []).map((u: any) => {
+          const pred = (predicciones ?? []).find((p: any) => p.usuario_id === u.id);
+          const part = (partidos ?? []).find((p: any) => p.usuario_id === u.id);
+          return {
+            id: u.id,
+            nombreCompleto: u.nombre_completo,
+            correoInstitucional: u.correo_institucional,
+            nivel: u.nivel,
+            carrera: u.carrera,
+            esAdmin: u.es_admin ?? false,
+            creadoEn: u.creado_en,
+            prediccion: pred ? {
+              id: pred.id, usuarioId: u.id,
+              primerPuesto: pred.primer_puesto, segundoPuesto: pred.segundo_puesto,
+              tercerPuesto: pred.tercer_puesto, ecuadorPosicion: pred.ecuador_posicion,
+              creadoEn: pred.creado_en,
+            } : null,
+            prediccionPartidos: part ? {
+              id: part.id, usuarioId: u.id,
+              partido1: part.partido1, partido2: part.partido2, partido3: part.partido3,
+              creadoEn: part.creado_en,
+            } : null,
+          };
+        });
       } catch (error) {
         console.error('Error obteniendo usuarios de Supabase, usando fallback local...', error);
       }
@@ -253,6 +259,7 @@ export const db = {
     return localDb.usuarios.map(({ contrasenaHash: _, ...u }) => ({
       ...u,
       prediccion: localDb.predicciones.find(p => p.usuarioId === u.id) ?? null,
+      prediccionPartidos: (localDb.prediccionesPartidos ?? []).find(p => p.usuarioId === u.id) ?? null,
     }));
   },
 
@@ -293,6 +300,64 @@ export const db = {
     localDb.configuracion = { ...localDb.configuracion, ...config };
     saveLocalDB(localDb);
     return localDb.configuracion;
+  },
+
+  async getPartidosPredictionByUserId(userId: string): Promise<PrediccionPartidos | null> {
+    if (isSupabaseConfigured) {
+      try {
+        const data = await fetchSupabase(`predicciones_partidos?usuario_id=eq.${userId}&select=*`);
+        if (!data || data.length === 0) return null;
+        const p = data[0];
+        return { id: p.id, usuarioId: p.usuario_id, partido1: p.partido1, partido2: p.partido2, partido3: p.partido3, creadoEn: p.creado_en };
+      } catch (error) {
+        console.error('Error obteniendo predicción de partidos de Supabase:', error);
+      }
+    }
+    const localDb = initLocalDB();
+    return localDb.prediccionesPartidos?.find(p => p.usuarioId === userId) ?? null;
+  },
+
+  async createPartidosPrediction(data: Omit<PrediccionPartidos, 'id' | 'creadoEn'>): Promise<PrediccionPartidos> {
+    const id = crypto.randomUUID();
+    const creadoEn = new Date().toISOString();
+    const nueva: PrediccionPartidos = { ...data, id, creadoEn };
+
+    if (isSupabaseConfigured) {
+      try {
+        await fetchSupabase('predicciones_partidos', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify({ id, usuario_id: data.usuarioId, partido1: data.partido1, partido2: data.partido2, partido3: data.partido3, creado_en: creadoEn }),
+        });
+        return nueva;
+      } catch (error) {
+        if (IS_PRODUCTION) throw error;
+        console.error('Error creando predicción de partidos en Supabase:', error);
+      }
+    }
+    const localDb = initLocalDB();
+    if (!localDb.prediccionesPartidos) localDb.prediccionesPartidos = [];
+    if (localDb.prediccionesPartidos.find(p => p.usuarioId === data.usuarioId)) {
+      throw new Error('El usuario ya tiene predicciones de partidos registradas.');
+    }
+    localDb.prediccionesPartidos.push(nueva);
+    saveLocalDB(localDb);
+    return nueva;
+  },
+
+  async deletePredictionByUserId(userId: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        await fetchSupabase(`predicciones?usuario_id=eq.${userId}`, { method: 'DELETE' });
+        return;
+      } catch (error) {
+        if (IS_PRODUCTION) throw error;
+        console.error('Error borrando predicción en Supabase, usando fallback local...', error);
+      }
+    }
+    const localDb = initLocalDB();
+    localDb.predicciones = localDb.predicciones.filter(p => p.usuarioId !== userId);
+    saveLocalDB(localDb);
   },
 
   async createPrediction(prediction: Omit<Prediccion, 'id' | 'creadoEn'>): Promise<Prediccion> {

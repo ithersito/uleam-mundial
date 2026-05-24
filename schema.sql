@@ -27,6 +27,33 @@ CREATE TABLE IF NOT EXISTS predicciones (
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de Partidos de Ecuador (Grupo E)
+CREATE TABLE IF NOT EXISTS partidos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fecha DATE NOT NULL,
+    hora TIME NOT NULL,
+    rival VARCHAR(100) NOT NULL,
+    rival_flag VARCHAR(10) NOT NULL,
+    color_neon VARCHAR(20) NOT NULL DEFAULT '#00e5ff',
+    fase VARCHAR(50) NOT NULL DEFAULT 'Grupo E'
+);
+INSERT INTO partidos (fecha, hora, rival, rival_flag, color_neon, fase) VALUES
+  ('2026-06-14', '18:00', 'Costa de Marfil', '🇨🇮', '#ff6d00', 'Grupo E'),
+  ('2026-06-20', '19:00', 'Curazao',         '🇨🇼', '#00e5ff', 'Grupo E'),
+  ('2026-06-25', '15:00', 'Alemania',        '🇩🇪', '#bf00ff', 'Grupo E')
+ON CONFLICT DO NOTHING;
+
+-- Tabla de Predicciones de Partidos (Grupo E Ecuador)
+CREATE TABLE IF NOT EXISTS predicciones_partidos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID UNIQUE NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    partido1 VARCHAR(10) NOT NULL CHECK (partido1 IN ('ecuador', 'empate', 'rival')),
+    partido2 VARCHAR(10) NOT NULL CHECK (partido2 IN ('ecuador', 'empate', 'rival')),
+    partido3 VARCHAR(10) NOT NULL CHECK (partido3 IN ('ecuador', 'empate', 'rival')),
+    creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE predicciones_partidos DISABLE ROW LEVEL SECURITY;
+
 -- Índices para optimizar las consultas y búsquedas
 CREATE INDEX IF NOT EXISTS idx_usuarios_correo ON usuarios(correo_institucional);
 CREATE INDEX IF NOT EXISTS idx_predicciones_usuario ON predicciones(usuario_id);
