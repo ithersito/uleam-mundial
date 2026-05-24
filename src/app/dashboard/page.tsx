@@ -5,25 +5,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, LogOut, ShieldAlert, Award, Calendar,
-  CheckCircle2, Lock, User, Briefcase, GraduationCap, Zap, AlertTriangle, Swords,
+  CheckCircle2, Lock, User, Briefcase, GraduationCap, Zap, AlertTriangle, Swords, Medal, X,
 } from 'lucide-react';
-import { ResultadoPartido, PrediccionPartidos } from '@/types';
+import { ResultadoPartido, PrediccionPartidos, EntradaClasificacion, ResultadosReales } from '@/types';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
-import { MUNDIAL_START } from '@/lib/constants';
-
-const FASES_COPA = [
-  { label: 'Fase de Grupos',         short: 'Grupos',        color: '#ff6d00', equipos: 48, min: 33, max: 48, pos: 40, icon: '🟠' },
-  { label: 'Dieciseisavos de Final', short: 'Dieciseisavos', color: '#ffd600', equipos: 32, min: 17, max: 32, pos: 24, icon: '🟡' },
-  { label: 'Octavos de Final',       short: 'Octavos',       color: '#00e5ff', equipos: 16, min: 9,  max: 16, pos: 12, icon: '🔵' },
-  { label: 'Cuartos de Final',       short: 'Cuartos',       color: '#bf00ff', equipos: 8,  min: 5,  max: 8,  pos: 6,  icon: '🟣' },
-  { label: 'Semifinales',            short: 'Semifinal',     color: '#ff0080', equipos: 4,  min: 3,  max: 4,  pos: 4,  icon: '🔴' },
-  { label: 'Gran Final',             short: 'Final',         color: '#ffd600', equipos: 2,  min: 1,  max: 2,  pos: 1,  icon: '🏆' },
-];
-
-function getFaseCopa(pos: number) {
-  return FASES_COPA.find(f => pos >= f.min && pos <= f.max) ?? FASES_COPA[0];
-}
+import { MUNDIAL_START, FASES_COPA, getFaseCopa } from '@/lib/constants';
+import { MAX_PUNTAJE } from '@/lib/scoring';
 
 // Agrupación de países por regiones
 const PAISES_REGIONES = [
@@ -65,6 +53,12 @@ export default function Dashboard() {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarConfirmacionPartidos, setMostrarConfirmacionPartidos] = useState(false);
   const [mundialStarted, setMundialStarted] = useState(() => Date.now() >= MUNDIAL_START.getTime());
+
+  // ── leaderboard ────────────────────────────────────────────────────────────
+  const [verClasificacion, setVerClasificacion]       = useState(false);
+  const [clasificacion, setClasificacion]             = useState<EntradaClasificacion[]>([]);
+  const [resultadosRanking, setResultadosRanking]     = useState<ResultadosReales | null>(null);
+  const [loadingClasificacion, setLoadingClasificacion] = useState(false);
 
   const [formPartidos, setFormPartidos] = useState<{ p1: ResultadoPartido | ''; p2: ResultadoPartido | ''; p3: ResultadoPartido | '' }>({
     p1: '', p2: '', p3: '',
@@ -169,6 +163,19 @@ export default function Dashboard() {
 
   const handleEditClick = () => {
     showToast('🔒 Reglamento Oficial: Las predicciones guardadas son definitivas y no se pueden modificar.', 'error');
+  };
+
+  const handleVerClasificacion = async () => {
+    setVerClasificacion(true);
+    if (clasificacion.length > 0) return; // ya cargado
+    setLoadingClasificacion(true);
+    try {
+      const res = await fetch('/api/leaderboard');
+      const data = await res.json();
+      if (data.leaderboard) setClasificacion(data.leaderboard);
+      if (data.resultados)  setResultadosRanking(data.resultados);
+    } catch { /* silencioso */ }
+    finally { setLoadingClasificacion(false); }
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -372,6 +379,151 @@ export default function Dashboard() {
         );
       })()}
 
+      {/* ── Modal: Clasificación ── */}
+      {verClasificacion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(6,0,15,.94)', backdropFilter: 'blur(12px)' }}>
+          <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,214,0,.3)', boxShadow: '0 0 60px rgba(255,214,0,.12)' }}>
+
+            {/* Header modal */}
+            <div className="px-6 py-5 flex items-center justify-between flex-shrink-0"
+              style={{ background: 'rgba(255,214,0,.05)', borderBottom: '1px solid rgba(255,214,0,.15)' }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(255,214,0,.1)', border: '1px solid rgba(255,214,0,.35)' }}>
+                  <Medal className="w-5 h-5" style={{ color: '#ffd600' }} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black" style={{ color: '#ffd600' }}>Clasificación General</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(240,230,255,.4)' }}>
+                    GYPS · Mundial 2026 · ULEAM
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setVerClasificacion(false)}
+                className="p-2 rounded-xl transition-all hover:scale-110"
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(240,230,255,.5)' }}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Resultados reales (si están definidos) */}
+            {resultadosRanking && Object.values(resultadosRanking).some(v => v !== null) && (
+              <div className="px-6 py-3 flex-shrink-0"
+                style={{ background: 'rgba(255,255,255,.02)', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,214,0,.5)' }}>🎯 Resultados Oficiales</p>
+                <div className="flex flex-wrap gap-2 text-[10px]">
+                  {resultadosRanking.primerPuesto  && <span className="px-2 py-1 rounded-lg font-black" style={{ background: 'rgba(255,214,0,.1)', color: '#ffd600', border: '1px solid rgba(255,214,0,.2)' }}>🥇 {resultadosRanking.primerPuesto}</span>}
+                  {resultadosRanking.segundoPuesto && <span className="px-2 py-1 rounded-lg font-black" style={{ background: 'rgba(0,229,255,.08)', color: '#00e5ff', border: '1px solid rgba(0,229,255,.2)' }}>🥈 {resultadosRanking.segundoPuesto}</span>}
+                  {resultadosRanking.tercerPuesto  && <span className="px-2 py-1 rounded-lg font-black" style={{ background: 'rgba(255,109,0,.08)', color: '#ff6d00', border: '1px solid rgba(255,109,0,.2)' }}>🥉 {resultadosRanking.tercerPuesto}</span>}
+                  {resultadosRanking.ecuadorPosicion !== null && (
+                    <span className="px-2 py-1 rounded-lg font-black" style={{ background: 'rgba(57,255,20,.08)', color: '#39ff14', border: '1px solid rgba(57,255,20,.2)' }}>
+                      🇪🇨 {getFaseCopa(resultadosRanking.ecuadorPosicion).short}
+                    </span>
+                  )}
+                  {(['partido1','partido2','partido3'] as const).map((pk, i) => {
+                    const v = resultadosRanking[pk];
+                    if (!v) return null;
+                    const labels = { ecuador: '🇪🇨 Gana', empate: '🤝 Empate', rival: '❌ Rival' };
+                    const cols   = { ecuador: '#39ff14', empate: '#ffd600', rival: '#ff0080' };
+                    const dates  = ['14/6', '20/6', '25/6'];
+                    return (
+                      <span key={pk} className="px-2 py-1 rounded-lg font-black"
+                        style={{ background: `${cols[v]}12`, color: cols[v], border: `1px solid ${cols[v]}30` }}>
+                        {dates[i]}: {labels[v]}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Body scrollable */}
+            <div className="flex-1 overflow-y-auto" style={{ background: 'rgba(6,0,15,.8)' }}>
+              {loadingClasificacion ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16">
+                  <Spinner size="lg" />
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'rgba(255,214,0,.5)' }}>Calculando puntos...</p>
+                </div>
+              ) : clasificacion.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16" style={{ color: 'rgba(240,230,255,.3)' }}>
+                  <Trophy className="w-10 h-10 opacity-20" />
+                  <p className="text-sm font-bold">Aún no hay datos en la clasificación.</p>
+                </div>
+              ) : (
+                <div className="p-4 space-y-2">
+                  {clasificacion.map((entrada, idx) => {
+                    const esTu = entrada.id === usuario?.id;
+                    const medallas = ['🥇', '🥈', '🥉'];
+                    const pct = MAX_PUNTAJE > 0 ? (entrada.puntaje / MAX_PUNTAJE) * 100 : 0;
+                    const barColor = idx === 0 ? '#ffd600' : idx === 1 ? '#00e5ff' : idx === 2 ? '#ff6d00' : esTu ? '#ff0080' : '#bf00ff';
+                    return (
+                      <div key={entrada.id}
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
+                        style={{
+                          background: esTu ? 'rgba(255,0,128,.08)' : 'rgba(255,255,255,.02)',
+                          border: `1px solid ${esTu ? 'rgba(255,0,128,.3)' : 'rgba(255,255,255,.05)'}`,
+                          boxShadow: esTu ? '0 0 16px rgba(255,0,128,.1)' : 'none',
+                        }}>
+
+                        {/* Posición */}
+                        <div className="w-8 text-center flex-shrink-0">
+                          {idx < 3
+                            ? <span className="text-lg">{medallas[idx]}</span>
+                            : <span className="text-xs font-black" style={{ color: 'rgba(240,230,255,.3)' }}>{idx + 1}</span>}
+                        </div>
+
+                        {/* Nombre */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-black text-white truncate">
+                            {entrada.nombreCompleto}
+                            {esTu && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded-full font-black"
+                              style={{ background: 'rgba(255,0,128,.15)', color: '#ff0080', border: '1px solid rgba(255,0,128,.3)' }}>TÚ</span>}
+                          </p>
+                          <p className="text-[9px] mt-0.5" style={{ color: 'rgba(240,230,255,.35)' }}>
+                            {entrada.nivel} · {entrada.carrera === 'Tecnología de la Información' ? 'TI' : 'IS'}
+                          </p>
+                        </div>
+
+                        {/* Barra de progreso */}
+                        <div className="flex-1 max-w-[120px] hidden sm:block">
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.06)' }}>
+                            <div className="h-full rounded-full transition-all"
+                              style={{ width: `${pct}%`, background: barColor, boxShadow: `0 0 6px ${barColor}60` }} />
+                          </div>
+                        </div>
+
+                        {/* Puntos */}
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-base font-black"
+                            style={{ color: entrada.puntaje > 0 ? barColor : 'rgba(240,230,255,.2)', textShadow: entrada.puntaje > 0 ? `0 0 8px ${barColor}50` : 'none' }}>
+                            {entrada.puntaje}
+                          </p>
+                          <p className="text-[9px]" style={{ color: 'rgba(240,230,255,.25)' }}>/{MAX_PUNTAJE} pts</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 flex items-center justify-between flex-shrink-0 text-[10px]"
+              style={{ borderTop: '1px solid rgba(255,255,255,.04)', background: 'rgba(6,0,15,.9)', color: 'rgba(240,230,255,.3)' }}>
+              <span>{clasificacion.length} participantes</span>
+              <span>Máx: <strong style={{ color: '#ffd600' }}>{MAX_PUNTAJE} pts</strong></span>
+              <button onClick={() => { setClasificacion([]); setResultadosRanking(null); handleVerClasificacion(); }}
+                className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg"
+                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(240,230,255,.4)' }}>
+                ↻ Actualizar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Ambient blobs */}
       <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full pointer-events-none -z-10"
         style={{ background: 'radial-gradient(circle, rgba(255,0,128,.08) 0%, transparent 70%)' }} />
@@ -396,6 +548,13 @@ export default function Dashboard() {
             </div>
           </div>
 
+          <button
+            onClick={handleVerClasificacion}
+            className="neon-btn-secondary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            style={{ borderColor: 'rgba(255,214,0,.5)', color: '#ffd600',
+              boxShadow: '0 0 6px rgba(255,214,0,.3)', textShadow: '0 0 6px rgba(255,214,0,.4)' }}>
+            <Medal className="w-4 h-4" /> Clasificación
+          </button>
           <button
             onClick={handleLogout}
             className="neon-btn-secondary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"

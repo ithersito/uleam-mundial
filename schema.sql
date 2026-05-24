@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS configuracion (
     valor TEXT NOT NULL
 );
 INSERT INTO configuracion (clave, valor) VALUES ('predicciones_abiertas', 'true') ON CONFLICT (clave) DO NOTHING;
+-- Resultados reales del torneo (ingresados por el admin para calcular puntajes)
+INSERT INTO configuracion (clave, valor)
+VALUES ('resultados_reales', '{"primerPuesto":null,"segundoPuesto":null,"tercerPuesto":null,"ecuadorPosicion":null,"partido1":null,"partido2":null,"partido3":null}')
+ON CONFLICT (clave) DO NOTHING;
 
 -- Deshabilitar RLS para acceso desde service_role (API del servidor)
 ALTER TABLE usuarios DISABLE ROW LEVEL SECURITY;

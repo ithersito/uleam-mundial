@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { Usuario, Prediccion, PrediccionPartidos, UsuarioConPrediccion, Configuracion } from '../types';
+import { Usuario, Prediccion, PrediccionPartidos, UsuarioConPrediccion, Configuracion, ResultadosReales } from '../types';
+import { DEFAULT_RESULTADOS } from './scoring';
 
 // Rutas para base de datos local
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -12,6 +13,7 @@ interface LocalDB {
   usuarios: Usuario[];
   predicciones: Prediccion[];
   prediccionesPartidos: PrediccionPartidos[];
+  resultadosReales: ResultadosReales;
 }
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -25,7 +27,7 @@ function initLocalDB(): LocalDB {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(DB_FILE)) {
-    const defaultData: LocalDB = { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [], prediccionesPartidos: [] };
+    const defaultData: LocalDB = { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [], prediccionesPartidos: [], resultadosReales: DEFAULT_RESULTADOS };
 
     fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
     return defaultData;
@@ -35,7 +37,7 @@ function initLocalDB(): LocalDB {
     return JSON.parse(content);
   } catch (error) {
     console.error('Error leyendo la base de datos local:', error);
-    return { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [], prediccionesPartidos: [] };
+    return { configuracion: { prediccionesAbiertas: true }, usuarios: [], predicciones: [], prediccionesPartidos: [], resultadosReales: DEFAULT_RESULTADOS };
   }
 }
 
@@ -358,6 +360,45 @@ export const db = {
     const localDb = initLocalDB();
     localDb.predicciones = localDb.predicciones.filter(p => p.usuarioId !== userId);
     saveLocalDB(localDb);
+  },
+
+  async getResultadosReales(): Promise<ResultadosReales> {
+    if (isSupabaseConfigured) {
+      try {
+        const data = await fetchSupabase('configuracion?clave=eq.resultados_reales&select=valor');
+        if (data && data.length > 0) {
+          return { ...DEFAULT_RESULTADOS, ...JSON.parse(data[0].valor) } as ResultadosReales;
+        }
+        return DEFAULT_RESULTADOS;
+      } catch (error) {
+        console.error('Error leyendo resultados reales de Supabase:', error);
+        return DEFAULT_RESULTADOS;
+      }
+    }
+    const localDb = initLocalDB();
+    return localDb.resultadosReales ?? DEFAULT_RESULTADOS;
+  },
+
+  async setResultadosReales(data: Partial<ResultadosReales>): Promise<ResultadosReales> {
+    const current = await this.getResultadosReales();
+    const updated: ResultadosReales = { ...current, ...data };
+    if (isSupabaseConfigured) {
+      try {
+        await fetchSupabase('configuracion', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({ clave: 'resultados_reales', valor: JSON.stringify(updated) }),
+        });
+        return updated;
+      } catch (error) {
+        console.error('Error guardando resultados reales en Supabase:', error);
+        return current;
+      }
+    }
+    const localDb = initLocalDB();
+    localDb.resultadosReales = updated;
+    saveLocalDB(localDb);
+    return updated;
   },
 
   async createPrediction(prediction: Omit<Prediccion, 'id' | 'creadoEn'>): Promise<Prediccion> {

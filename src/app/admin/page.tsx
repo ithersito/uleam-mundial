@@ -2,31 +2,18 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Filter, Trophy, LogOut, Search, GraduationCap, BookOpen, Lock, Unlock, AlertTriangle, Trash2, RotateCcw, Swords } from 'lucide-react';
+import {
+  Users, Filter, Trophy, LogOut, Search, GraduationCap, BookOpen,
+  Lock, Unlock, AlertTriangle, Trash2, RotateCcw, Swords, Target, Save, Pencil, X,
+} from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
-import { UsuarioConPrediccion, ResultadoPartido } from '@/types';
+import { UsuarioConPrediccion, ResultadoPartido, ResultadosReales } from '@/types';
+import { calcularPuntaje, MAX_PUNTAJE, DEFAULT_RESULTADOS } from '@/lib/scoring';
+import { PAISES_REGIONES, FASES_COPA, getFaseCopa } from '@/lib/constants';
 
-const NIVELES = ['Todos', '1ro', '2do', '3ro', '4to', '5to', '6to', '7mo', '8vo'];
+const NIVELES  = ['Todos', '1ro', '2do', '3ro', '4to', '5to', '6to', '7mo', '8vo'];
 const CARRERAS = ['Todas', 'Tecnología de la Información', 'Ingeniería en Software'];
 const ECUADOR_OPTS = ['Todas', ...Array.from({ length: 48 }, (_, i) => String(i + 1))];
-
-const FASES = [
-  { label: 'Fase de Grupos',         short: 'Grupos',        color: '#ff6d00', equipos: 48, icon: '🟠' },
-  { label: 'Dieciseisavos de Final', short: 'Dieciseisavos', color: '#ffd600', equipos: 32, icon: '🟡' },
-  { label: 'Octavos de Final',       short: 'Octavos',       color: '#00e5ff', equipos: 16, icon: '🔵' },
-  { label: 'Cuartos de Final',       short: 'Cuartos',       color: '#bf00ff', equipos: 8,  icon: '🟣' },
-  { label: 'Semifinales',            short: 'Semifinal',     color: '#ff0080', equipos: 4,  icon: '🔴' },
-  { label: 'Gran Final',             short: 'Final',         color: '#ffd600', equipos: 2,  icon: '🏆' },
-];
-
-function getFase(pos: number) {
-  if (pos >= 33) return FASES[0];
-  if (pos >= 17) return FASES[1];
-  if (pos >= 9)  return FASES[2];
-  if (pos >= 5)  return FASES[3];
-  if (pos >= 3)  return FASES[4];
-  return FASES[5];
-}
 
 const RES_MAP: Record<ResultadoPartido, { label: string; color: string }> = {
   ecuador: { label: '🇪🇨 Gana',  color: '#39ff14' },
@@ -41,41 +28,83 @@ const PARTIDOS_DEF = [
 ];
 
 const INIT_FILTROS = {
-  busqueda: '', nivel: 'Todos', carrera: 'Todas', apuesta: 'todos' as 'todos'|'con'|'sin',
+  busqueda: '', nivel: 'Todos', carrera: 'Todas', apuesta: 'todos' as 'todos' | 'con' | 'sin',
   primero: 'Todos', segundo: 'Todos', tercero: 'Todos',
   ecuador: 'Todas', fase: 'Todas',
   p1: 'todas', p2: 'todas', p3: 'todas',
 };
 
+// ── helper renders ──────────────────────────────────────────────────────────
+function PaisSelect({ value, onChange, excluir = [] }: {
+  value: string; onChange: (v: string) => void; excluir?: string[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="casino-select w-full px-3 py-2 rounded-xl text-xs">
+      <option value="">— No definido —</option>
+      {PAISES_REGIONES.map(r => (
+        <optgroup key={r.region} label={r.region}>
+          {r.paises.map(p => (
+            <option key={p} value={p} disabled={excluir.includes(p)}>
+              {excluir.includes(p) ? `${p} ✗` : p}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
-  const [usuarios, setUsuarios] = useState<UsuarioConPrediccion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+
+  // ── usuarios + config ──────────────────────────────────────────────────────
+  const [usuarios, setUsuarios]                     = useState<UsuarioConPrediccion[]>([]);
+  const [loading, setLoading]                       = useState(true);
+  const [error, setError]                           = useState('');
   const [prediccionesAbiertas, setPrediccionesAbiertas] = useState<boolean | null>(null);
-  const [toggling, setToggling] = useState(false);
-  const [confirmarCierre, setConfirmarCierre] = useState(false);
-  const [borrandoId, setBorrandoId] = useState<string | null>(null);
-  const [confirmarBorrado, setConfirmarBorrado] = useState<{ id: string; nombre: string } | null>(null);
-  const [filtros, setFiltros] = useState(INIT_FILTROS);
+  const [toggling, setToggling]                     = useState(false);
+  const [confirmarCierre, setConfirmarCierre]       = useState(false);
+  const [borrandoId, setBorrandoId]                 = useState<string | null>(null);
+  const [confirmarBorrado, setConfirmarBorrado]     = useState<{ id: string; nombre: string } | null>(null);
+  const [filtros, setFiltros]                       = useState(INIT_FILTROS);
+
+  // ── resultados reales ──────────────────────────────────────────────────────
+  const [resultados, setResultados]                 = useState<ResultadosReales>(DEFAULT_RESULTADOS);
+  const [editandoResultados, setEditandoResultados] = useState(false);
+  const [formRes, setFormRes]                       = useState<ResultadosReales>(DEFAULT_RESULTADOS);
+  const [guardandoRes, setGuardandoRes]             = useState(false);
 
   const setF = (k: keyof typeof INIT_FILTROS, v: string) =>
     setFiltros(prev => ({ ...prev, [k]: v }));
 
   const hayFiltrosActivos = JSON.stringify(filtros) !== JSON.stringify(INIT_FILTROS);
 
+  // ── puntajes calculados ──────────────────────────────────────────────────
+  const puntajes = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof calcularPuntaje>>();
+    usuarios.forEach(u => map.set(u.id, calcularPuntaje(u.prediccion, u.prediccionPartidos, resultados)));
+    return map;
+  }, [usuarios, resultados]);
+
+  // ── init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       fetch('/api/admin/users').then(r => r.json()),
       fetch('/api/admin/config').then(r => r.json()),
-    ]).then(([dataUsers, dataConfig]) => {
+      fetch('/api/admin/resultados').then(r => r.json()),
+    ]).then(([dataUsers, dataConfig, dataRes]) => {
       if (dataUsers.error) { setError(dataUsers.error); return; }
       setUsuarios(dataUsers.usuarios.filter((u: UsuarioConPrediccion) => !u.esAdmin));
-      if (dataConfig.config) setPrediccionesAbiertas(dataConfig.config.prediccionesAbiertas);
+      if (dataConfig.config)    setPrediccionesAbiertas(dataConfig.config.prediccionesAbiertas);
+      if (dataRes.resultados)  { setResultados(dataRes.resultados); setFormRes(dataRes.resultados); }
     }).catch(() => setError('No se pudo cargar la información.'))
       .finally(() => setLoading(false));
   }, []);
 
+  // ── handlers ──────────────────────────────────────────────────────────────
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
@@ -106,32 +135,50 @@ export default function AdminPage() {
     setToggling(false);
   };
 
+  const handleGuardarResultados = async () => {
+    setGuardandoRes(true);
+    try {
+      const res = await fetch('/api/admin/resultados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formRes),
+      });
+      const data = await res.json();
+      if (data.resultados) { setResultados(data.resultados); setFormRes(data.resultados); }
+      setEditandoResultados(false);
+    } finally { setGuardandoRes(false); }
+  };
+
   const paisesUnicos = (campo: 'primerPuesto' | 'segundoPuesto' | 'tercerPuesto') =>
     ['Todos', ...Array.from(new Set(usuarios.map(u => u.prediccion?.[campo]).filter(Boolean) as string[])).sort()];
 
   const filtrados = useMemo(() => usuarios.filter(u => {
     const q = filtros.busqueda.toLowerCase();
     if (q && !u.nombreCompleto.toLowerCase().includes(q) && !u.correoInstitucional.toLowerCase().includes(q)) return false;
-    if (filtros.nivel !== 'Todos' && u.nivel !== filtros.nivel) return false;
+    if (filtros.nivel   !== 'Todos' && u.nivel   !== filtros.nivel)   return false;
     if (filtros.carrera !== 'Todas' && u.carrera !== filtros.carrera) return false;
     if (filtros.apuesta === 'con' && !u.prediccion) return false;
-    if (filtros.apuesta === 'sin' && u.prediccion) return false;
-    if (filtros.primero !== 'Todos' && u.prediccion?.primerPuesto !== filtros.primero) return false;
+    if (filtros.apuesta === 'sin' && u.prediccion)  return false;
+    if (filtros.primero !== 'Todos' && u.prediccion?.primerPuesto  !== filtros.primero) return false;
     if (filtros.segundo !== 'Todos' && u.prediccion?.segundoPuesto !== filtros.segundo) return false;
-    if (filtros.tercero !== 'Todos' && u.prediccion?.tercerPuesto !== filtros.tercero) return false;
+    if (filtros.tercero !== 'Todos' && u.prediccion?.tercerPuesto  !== filtros.tercero) return false;
     if (filtros.ecuador !== 'Todas' && String(u.prediccion?.ecuadorPosicion) !== filtros.ecuador) return false;
-    if (filtros.fase !== 'Todas' && (u.prediccion ? getFase(u.prediccion.ecuadorPosicion).label !== filtros.fase : true)) return false;
+    if (filtros.fase !== 'Todas' && (u.prediccion ? getFaseCopa(u.prediccion.ecuadorPosicion).label !== filtros.fase : true)) return false;
     if (filtros.p1 !== 'todas' && u.prediccionPartidos?.partido1 !== filtros.p1) return false;
     if (filtros.p2 !== 'todas' && u.prediccionPartidos?.partido2 !== filtros.p2) return false;
     if (filtros.p3 !== 'todas' && u.prediccionPartidos?.partido3 !== filtros.p3) return false;
     return true;
   }), [usuarios, filtros]);
 
-  const conApuesta = usuarios.filter(u => u.prediccion !== null).length;
-  const sinApuesta = usuarios.length - conApuesta;
+  const conApuesta  = usuarios.filter(u => u.prediccion !== null).length;
+  const sinApuesta  = usuarios.length - conApuesta;
   const conPartidos = usuarios.filter(u => u.prediccionPartidos !== null).length;
 
   const sel = "casino-select w-full px-3 py-2.5 rounded-xl text-xs";
+
+  // ── resultados: ¿tiene algo definido? ────────────────────────────────────
+  const hayResultados = Object.values(resultados).some(v => v !== null);
+  const faseCopaTorneo = resultados.ecuadorPosicion !== null ? getFaseCopa(resultados.ecuadorPosicion) : null;
 
   return (
     <div className="min-h-screen font-sans px-4 py-8" style={{ color: '#f0e6ff' }}>
@@ -144,7 +191,7 @@ export default function AdminPage() {
           style={{ background: 'radial-gradient(circle, rgba(0,229,255,.06) 0%, transparent 70%)' }} />
       </div>
 
-      {/* Modal cierre */}
+      {/* ── Modal: cerrar predicciones ── */}
       {confirmarCierre && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(6,0,15,.92)', backdropFilter: 'blur(8px)' }}>
@@ -177,7 +224,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Modal borrado */}
+      {/* ── Modal: borrar predicción ── */}
       {confirmarBorrado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(6,0,15,.92)', backdropFilter: 'blur(8px)' }}>
@@ -257,8 +304,8 @@ export default function AdminPage() {
         {prediccionesAbiertas !== null && (
           <div className="mb-6 px-5 py-3 rounded-2xl flex items-center gap-3"
             style={prediccionesAbiertas
-              ? { background: 'rgba(57,255,20,.05)', border: '1px solid rgba(57,255,20,.25)' }
-              : { background: 'rgba(255,109,0,.05)', border: '1px solid rgba(255,109,0,.3)' }}>
+              ? { background: 'rgba(57,255,20,.05)',  border: '1px solid rgba(57,255,20,.25)'  }
+              : { background: 'rgba(255,109,0,.05)', border: '1px solid rgba(255,109,0,.3)'  }}>
             <div className="w-2 h-2 rounded-full animate-pulse flex-shrink-0"
               style={{ background: prediccionesAbiertas ? '#39ff14' : '#ff6d00' }} />
             <span className="text-xs font-black uppercase tracking-widest"
@@ -273,11 +320,11 @@ export default function AdminPage() {
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           {[
-            { label: 'Total',        value: usuarios.length, color: '#00e5ff', icon: Users },
-            { label: 'Con Podio',    value: conApuesta,      color: '#39ff14', icon: Trophy },
-            { label: 'Sin Podio',    value: sinApuesta,      color: '#ff6d00', icon: Filter },
-            { label: 'Con Partidos', value: conPartidos,     color: '#bf00ff', icon: Swords },
-            { label: 'Mostrando',    value: filtrados.length, color: '#ff0080', icon: Filter },
+            { label: 'Total',        value: usuarios.length,  color: '#00e5ff', icon: Users   },
+            { label: 'Con Podio',    value: conApuesta,       color: '#39ff14', icon: Trophy  },
+            { label: 'Sin Podio',    value: sinApuesta,       color: '#ff6d00', icon: Filter  },
+            { label: 'Con Partidos', value: conPartidos,      color: '#bf00ff', icon: Swords  },
+            { label: 'Mostrando',    value: filtrados.length, color: '#ff0080', icon: Filter  },
           ].map(({ label, value, color, icon: Icon }) => (
             <div key={label} className="casino-card p-4 rounded-2xl flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -290,6 +337,198 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════
+            ── Resultados Reales ──
+        ══════════════════════════════════════════════════════════════ */}
+        <div className="casino-card p-5 rounded-2xl mb-6"
+          style={{ border: '1px solid rgba(255,214,0,.18)' }}>
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4" style={{ color: '#ffd600' }} />
+              <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#ffd600' }}>
+                🎯 Resultados Reales
+              </span>
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full ml-1"
+                style={{ background: 'rgba(255,214,0,.1)', color: 'rgba(255,214,0,.6)', border: '1px solid rgba(255,214,0,.2)' }}>
+                {MAX_PUNTAJE} pts máx
+              </span>
+            </div>
+            {!editandoResultados ? (
+              <button
+                onClick={() => { setFormRes({ ...resultados }); setEditandoResultados(true); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105"
+                style={{ background: 'rgba(255,214,0,.08)', border: '1px solid rgba(255,214,0,.25)', color: '#ffd600' }}>
+                <Pencil className="w-3 h-3" /> {hayResultados ? 'Editar' : 'Definir'}
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setFormRes({ ...resultados }); setEditandoResultados(false); }}
+                  disabled={guardandoRes}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider"
+                  style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.15)', color: 'rgba(240,230,255,.5)' }}>
+                  <X className="w-3 h-3" /> Cancelar
+                </button>
+                <button
+                  onClick={handleGuardarResultados}
+                  disabled={guardandoRes}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 disabled:opacity-50"
+                  style={{ background: 'rgba(57,255,20,.12)', border: '1px solid rgba(57,255,20,.35)', color: '#39ff14', boxShadow: '0 0 10px rgba(57,255,20,.1)' }}>
+                  {guardandoRes ? <Spinner size="sm" /> : <Save className="w-3 h-3" />} Guardar
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Vista modo lectura */}
+          {!editandoResultados && !hayResultados && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              style={{ background: 'rgba(255,214,0,.04)', border: '1px solid rgba(255,214,0,.12)' }}>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,214,0,.5)' }} />
+              <p className="text-xs" style={{ color: 'rgba(240,230,255,.4)' }}>
+                Aún no se han definido los resultados. Cuando el Mundial termine, ingresa aquí los resultados reales para calcular los puntos de cada estudiante.
+              </p>
+            </div>
+          )}
+
+          {!editandoResultados && hayResultados && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Podio */}
+              <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,214,0,.6)' }}>🏆 Podio del Mundial</p>
+                {resultados.primerPuesto  && <div className="flex justify-between text-xs"><span style={{ color: 'rgba(240,230,255,.4)' }}>🥇 Campeón</span><strong className="neon-text-yellow">{resultados.primerPuesto}</strong></div>}
+                {resultados.segundoPuesto && <div className="flex justify-between text-xs"><span style={{ color: 'rgba(240,230,255,.4)' }}>🥈 Subcampeón</span><strong className="neon-text-cyan">{resultados.segundoPuesto}</strong></div>}
+                {resultados.tercerPuesto  && <div className="flex justify-between text-xs"><span style={{ color: 'rgba(240,230,255,.4)' }}>🥉 3° Lugar</span><strong style={{ color: '#ff6d00' }}>{resultados.tercerPuesto}</strong></div>}
+              </div>
+              {/* Ecuador */}
+              <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(57,255,20,.6)' }}>🇪🇨 Ecuador — Fase</p>
+                {faseCopaTorneo ? (
+                  <span className="px-3 py-1.5 rounded-lg text-xs font-black"
+                    style={{ background: `${faseCopaTorneo.color}18`, color: faseCopaTorneo.color, border: `1px solid ${faseCopaTorneo.color}40` }}>
+                    {faseCopaTorneo.icon} {faseCopaTorneo.label}
+                  </span>
+                ) : <span className="text-xs" style={{ color: 'rgba(240,230,255,.3)' }}>— No definido —</span>}
+              </div>
+              {/* Partidos */}
+              <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(0,229,255,.6)' }}>⚽ Grupo E</p>
+                {(['partido1', 'partido2', 'partido3'] as const).map((pk, i) => {
+                  const v = resultados[pk];
+                  return (
+                    <div key={pk} className="flex justify-between items-center text-xs">
+                      <span style={{ color: 'rgba(240,230,255,.4)' }}>{PARTIDOS_DEF[i].fecha} vs {PARTIDOS_DEF[i].rival}</span>
+                      {v ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-lg"
+                          style={{ background: `${RES_MAP[v].color}18`, color: RES_MAP[v].color, border: `1px solid ${RES_MAP[v].color}40` }}>
+                          {RES_MAP[v].label}
+                        </span>
+                      ) : <span style={{ color: 'rgba(240,230,255,.2)' }}>—</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Vista modo edición */}
+          {editandoResultados && (
+            <div className="space-y-5">
+
+              {/* Podio */}
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,214,0,.7)' }}>🏆 Podio del Mundial</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {([
+                    { label: '🥇 Campeón',    field: 'primerPuesto'  as const, excluir: [formRes.segundoPuesto, formRes.tercerPuesto] },
+                    { label: '🥈 Subcampeón', field: 'segundoPuesto' as const, excluir: [formRes.primerPuesto,  formRes.tercerPuesto] },
+                    { label: '🥉 3° Lugar',   field: 'tercerPuesto'  as const, excluir: [formRes.primerPuesto,  formRes.segundoPuesto] },
+                  ]).map(({ label, field, excluir }) => (
+                    <div key={field}>
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,214,0,.5)' }}>{label}</p>
+                      <PaisSelect
+                        value={formRes[field] ?? ''}
+                        onChange={v => setFormRes(prev => ({ ...prev, [field]: v || null }))}
+                        excluir={excluir.filter(Boolean) as string[]}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ecuador fase */}
+              <div className="pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(57,255,20,.7)' }}>🇪🇨 Ecuador — Fase final alcanzada</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {FASES_COPA.map(fase => {
+                    const sel = formRes.ecuadorPosicion !== null && getFaseCopa(formRes.ecuadorPosicion).label === fase.label;
+                    return (
+                      <button
+                        key={fase.label}
+                        type="button"
+                        onClick={() => setFormRes(prev => ({ ...prev, ecuadorPosicion: sel ? null : fase.pos }))}
+                        className="flex flex-col gap-1 p-3 rounded-xl text-center transition-all hover:scale-[1.03] active:scale-95"
+                        style={{
+                          background: sel ? `${fase.color}18` : 'rgba(255,255,255,.03)',
+                          border: `2px solid ${sel ? fase.color : 'rgba(255,255,255,.08)'}`,
+                          boxShadow: sel ? `0 0 12px ${fase.color}25` : 'none',
+                        }}>
+                        <span className="text-lg">{fase.icon}</span>
+                        <span className="text-[9px] font-black" style={{ color: sel ? fase.color : 'rgba(240,230,255,.5)' }}>
+                          {fase.short}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Partidos */}
+              <div className="pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(0,229,255,.7)' }}>⚽ Resultados Grupo E</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {PARTIDOS_DEF.map((p, i) => {
+                    const pKey = `partido${i + 1}` as 'partido1' | 'partido2' | 'partido3';
+                    const val = formRes[pKey];
+                    return (
+                      <div key={p.key}>
+                        <p className="text-[9px] font-black uppercase tracking-widest mb-2"
+                          style={{ color: `${p.hex}aa` }}>
+                          {p.fecha} — Ecuador vs {p.rival}
+                        </p>
+                        <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${p.hex}40` }}>
+                          {([
+                            { v: null,      txt: 'N/A',      icon: '—'  },
+                            { v: 'ecuador', txt: '🇪🇨 Gana',  icon: '🇪🇨' },
+                            { v: 'empate',  txt: '🤝 Empate', icon: '🤝' },
+                            { v: 'rival',   txt: '❌ Rival',  icon: '❌' },
+                          ] as const).map(({ v, txt }, idx, arr) => (
+                            <button
+                              key={String(v)}
+                              type="button"
+                              onClick={() => setFormRes(prev => ({ ...prev, [pKey]: v }))}
+                              className="flex-1 py-2 text-[9px] font-black uppercase tracking-wide transition-all"
+                              style={{
+                                background: val === v ? (v === null ? 'rgba(255,255,255,.08)' : `${p.hex}25`) : 'transparent',
+                                color: val === v ? (v === null ? 'rgba(240,230,255,.6)' : p.hex) : 'rgba(240,230,255,.35)',
+                                borderRight: idx < arr.length - 1 ? `1px solid ${p.hex}20` : 'none',
+                              }}>
+                              {txt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
 
         {/* ── Filtros ── */}
@@ -377,7 +616,7 @@ export default function AdminPage() {
               <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: 'rgba(191,0,255,.7)' }}>⚽ Ecuador — Fase de la Copa</p>
               <select value={filtros.fase} onChange={e => setF('fase', e.target.value)} className={sel}>
                 <option value="Todas">Todas las fases</option>
-                {FASES.map(f => <option key={f.label} value={f.label}>{f.icon} {f.label} ({f.equipos} eq.)</option>)}
+                {FASES_COPA.map(f => <option key={f.label} value={f.label}>{f.icon} {f.label} ({f.equipos} eq.)</option>)}
               </select>
             </div>
           </div>
@@ -386,22 +625,22 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
             {([
               { label: '⚽ 14/6 — vs Costa de Marfil', fk: 'p1' as const, hex: '#ff6d00', val: filtros.p1 },
-              { label: '⚽ 20/6 — vs Curazao',         fk: 'p2' as const, hex: '#00e5ff', val: filtros.p2 },
-              { label: '⚽ 25/6 — vs Alemania',         fk: 'p3' as const, hex: '#bf00ff', val: filtros.p3 },
+              { label: '⚽ 20/6 — vs Curazao',          fk: 'p2' as const, hex: '#00e5ff', val: filtros.p2 },
+              { label: '⚽ 25/6 — vs Alemania',          fk: 'p3' as const, hex: '#bf00ff', val: filtros.p3 },
             ]).map(({ label, fk, hex, val }) => (
               <div key={fk}>
-                <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: hex + 'aa' }}>{label}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: `${hex}aa` }}>{label}</p>
                 <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${hex}40` }}>
                   {([
-                    { v: 'todas',   txt: 'Todos'  },
+                    { v: 'todas',   txt: 'Todos'   },
                     { v: 'ecuador', txt: '🇪🇨 Gana' },
                     { v: 'empate',  txt: '🤝 Empate' },
-                    { v: 'rival',   txt: '❌ Rival' },
+                    { v: 'rival',   txt: '❌ Rival'  },
                   ] as const).map(({ v, txt }, i, arr) => (
                     <button key={v} onClick={() => setF(fk, v)}
                       className="flex-1 py-2 text-[9px] font-black uppercase tracking-wide transition-all"
                       style={{
-                        background: val === v ? hex + '25' : 'transparent',
+                        background: val === v ? `${hex}25` : 'transparent',
                         color: val === v ? hex : 'rgba(240,230,255,.35)',
                         borderRight: i < arr.length - 1 ? `1px solid ${hex}20` : 'none',
                       }}>
@@ -451,27 +690,33 @@ export default function AdminPage() {
                       style={{ color: 'rgba(0,229,255,.5)', borderLeft: '1px solid rgba(0,229,255,.1)' }}>
                       ⚽ Grupo E
                     </th>
+                    <th className="px-4 py-1.5 text-center text-[9px] font-black uppercase tracking-widest"
+                      style={{ color: 'rgba(255,214,0,.7)', borderLeft: '1px solid rgba(255,214,0,.15)' }}>
+                      ⭐ Pts
+                    </th>
                     <th />
                   </tr>
                   {/* Cabeceras */}
                   <tr style={{ borderBottom: '1px solid rgba(255,0,128,.15)', background: 'rgba(255,0,128,.04)' }}>
                     {[
-                      { h: '#',           color: 'rgba(240,230,255,.3)' },
-                      { h: 'Estudiante',  color: 'rgba(0,229,255,.7)'   },
-                      { h: 'Semestre',    color: 'rgba(0,229,255,.7)'   },
-                      { h: 'Carrera',     color: 'rgba(0,229,255,.7)'   },
-                      { h: '1° Puesto',   color: 'rgba(255,214,0,.8)',   bl: true },
-                      { h: '2° Puesto',   color: 'rgba(0,229,255,.7)'   },
-                      { h: '3° Puesto',   color: 'rgba(255,109,0,.8)'   },
-                      { h: 'Fecha',       color: 'rgba(240,230,255,.3)' },
-                      { h: 'Posición',    color: 'rgba(57,255,20,.7)',   bl: true },
-                      { h: 'Fase',        color: 'rgba(57,255,20,.7)'   },
-                      { h: 'vs C. Marfil',color: '#ff6d00',              bl: true },
-                      { h: 'vs Curazao',  color: '#00e5ff'               },
-                      { h: 'vs Alemania', color: '#bf00ff'               },
-                      { h: '',            color: ''                       },
+                      { h: '#',            color: 'rgba(240,230,255,.3)' },
+                      { h: 'Estudiante',   color: 'rgba(0,229,255,.7)'   },
+                      { h: 'Semestre',     color: 'rgba(0,229,255,.7)'   },
+                      { h: 'Carrera',      color: 'rgba(0,229,255,.7)'   },
+                      { h: '1° Puesto',    color: 'rgba(255,214,0,.8)',   bl: true },
+                      { h: '2° Puesto',    color: 'rgba(0,229,255,.7)'   },
+                      { h: '3° Puesto',    color: 'rgba(255,109,0,.8)'   },
+                      { h: 'Fecha',        color: 'rgba(240,230,255,.3)' },
+                      { h: 'Posición',     color: 'rgba(57,255,20,.7)',   bl: true },
+                      { h: 'Fase',         color: 'rgba(57,255,20,.7)'   },
+                      { h: 'vs C. Marfil', color: '#ff6d00',              bl: true },
+                      { h: 'vs Curazao',   color: '#00e5ff'               },
+                      { h: 'vs Alemania',  color: '#bf00ff'               },
+                      { h: 'Pts',          color: 'rgba(255,214,0,.8)',   bl: true },
+                      { h: '',             color: ''                       },
                     ].map(({ h, color, bl }, idx) => (
-                      <th key={idx} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+                      <th key={idx}
+                        className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
                         style={{ color, borderLeft: bl ? '1px solid rgba(255,255,255,.06)' : undefined }}>
                         {h}
                       </th>
@@ -479,125 +724,156 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtrados.map((u, i) => (
-                    <tr key={u.id}
-                      style={{ borderBottom: '1px solid rgba(255,255,255,.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.01)' }}
-                      className="hover:bg-[rgba(191,0,255,.05)] transition-colors">
+                  {filtrados.map((u, i) => {
+                    const score = puntajes.get(u.id) ?? { puntaje: 0, detalles: {} as ReturnType<typeof calcularPuntaje>['detalles'] };
+                    return (
+                      <tr key={u.id}
+                        style={{ borderBottom: '1px solid rgba(255,255,255,.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.01)' }}
+                        className="hover:bg-[rgba(191,0,255,.05)] transition-colors">
 
-                      {/* # */}
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(240,230,255,.3)' }}>{i + 1}</td>
+                        {/* # */}
+                        <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(240,230,255,.3)' }}>{i + 1}</td>
 
-                      {/* Estudiante */}
-                      <td className="px-4 py-3 min-w-[180px]">
-                        <p className="font-bold text-white text-xs leading-tight">{u.nombreCompleto}</p>
-                        <p className="text-[10px] mt-0.5" style={{ color: 'rgba(0,229,255,.55)' }}>{u.correoInstitucional}</p>
-                      </td>
+                        {/* Estudiante */}
+                        <td className="px-4 py-3 min-w-[180px]">
+                          <p className="font-bold text-white text-xs leading-tight">{u.nombreCompleto}</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: 'rgba(0,229,255,.55)' }}>{u.correoInstitucional}</p>
+                        </td>
 
-                      {/* Semestre */}
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-1 rounded-lg text-[10px] font-black uppercase"
-                          style={{ background: 'rgba(0,229,255,.1)', color: '#00e5ff', border: '1px solid rgba(0,229,255,.2)' }}>
-                          {u.nivel}
-                        </span>
-                      </td>
-
-                      {/* Carrera */}
-                      <td className="px-4 py-3">
-                        <span className="text-[10px] font-black px-2 py-1 rounded-lg"
-                          style={{ background: 'rgba(191,0,255,.1)', color: '#bf00ff', border: '1px solid rgba(191,0,255,.25)' }}>
-                          {u.carrera === 'Tecnología de la Información' ? 'TI' : 'IS'}
-                        </span>
-                      </td>
-
-                      {u.prediccion ? (
-                        <>
-                          {/* Podio */}
-                          <td className="px-4 py-3" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
-                            <span className="text-xs font-bold" style={{ color: '#ffd600' }}>🥇 {u.prediccion.primerPuesto}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs font-bold" style={{ color: 'rgba(240,230,255,.7)' }}>🥈 {u.prediccion.segundoPuesto}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs font-bold" style={{ color: '#ff6d00' }}>🥉 {u.prediccion.tercerPuesto}</span>
-                          </td>
-                          <td className="px-4 py-3 text-[10px] font-mono whitespace-nowrap" style={{ color: 'rgba(240,230,255,.3)' }}>
-                            {new Date(u.prediccion.creadoEn).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: '2-digit' })}
-                          </td>
-
-                          {/* Ecuador */}
-                          <td className="px-4 py-3" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
-                            <span className="px-2 py-1 rounded-lg text-[10px] font-black"
-                              style={{ background: 'rgba(57,255,20,.1)', color: '#39ff14', border: '1px solid rgba(57,255,20,.2)' }}>
-                              #{u.prediccion.ecuadorPosicion}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            {(() => {
-                              const fase = getFase(u.prediccion!.ecuadorPosicion);
-                              return (
-                                <div className="flex flex-col gap-1 min-w-[110px]">
-                                  <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
-                                    style={{ background: `${fase.color}18`, color: fase.color, border: `1px solid ${fase.color}40` }}>
-                                    {fase.icon} {fase.short}
-                                  </span>
-                                  <div className="flex gap-0.5">
-                                    {FASES.map((f, idx) => {
-                                      const faseIdx = FASES.indexOf(fase);
-                                      return (
-                                        <div key={f.label} title={f.label}
-                                          className="h-1 flex-1 rounded-full"
-                                          style={{ background: idx <= faseIdx ? f.color : 'rgba(255,255,255,.08)' }} />
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </td>
-
-                          {/* Partidos Grupo E */}
-                          {PARTIDOS_DEF.map((p, pi) => {
-                            const vals = u.prediccionPartidos
-                              ? [u.prediccionPartidos.partido1, u.prediccionPartidos.partido2, u.prediccionPartidos.partido3] as ResultadoPartido[]
-                              : null;
-                            const res = vals?.[pi];
-                            return (
-                              <td key={p.key} className="px-4 py-3" style={{ borderLeft: pi === 0 ? '1px solid rgba(255,255,255,.04)' : undefined }}>
-                                {res ? (
-                                  <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
-                                    style={{ background: `${RES_MAP[res].color}18`, color: RES_MAP[res].color, border: `1px solid ${RES_MAP[res].color}40` }}>
-                                    {RES_MAP[res].label}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px]" style={{ color: 'rgba(240,230,255,.2)' }}>—</span>
-                                )}
-                              </td>
-                            );
-                          })}
-
-                          {/* Borrar */}
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => setConfirmarBorrado({ id: u.id, nombre: u.nombreCompleto })}
-                              disabled={borrandoId === u.id}
-                              title="Borrar predicción"
-                              className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
-                              style={{ background: 'rgba(255,0,128,.08)', border: '1px solid rgba(255,0,128,.25)', color: '#ff0080' }}>
-                              {borrandoId === u.id ? <Spinner size="sm" /> : <Trash2 className="w-3.5 h-3.5" />}
-                            </button>
-                          </td>
-                        </>
-                      ) : (
-                        <td colSpan={10} className="px-4 py-3 text-center" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg"
-                            style={{ background: 'rgba(255,109,0,.08)', color: 'rgba(255,109,0,.6)', border: '1px solid rgba(255,109,0,.2)' }}>
-                            Sin apuesta
+                        {/* Semestre */}
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 rounded-lg text-[10px] font-black uppercase"
+                            style={{ background: 'rgba(0,229,255,.1)', color: '#00e5ff', border: '1px solid rgba(0,229,255,.2)' }}>
+                            {u.nivel}
                           </span>
                         </td>
-                      )}
-                    </tr>
-                  ))}
+
+                        {/* Carrera */}
+                        <td className="px-4 py-3">
+                          <span className="text-[10px] font-black px-2 py-1 rounded-lg"
+                            style={{ background: 'rgba(191,0,255,.1)', color: '#bf00ff', border: '1px solid rgba(191,0,255,.25)' }}>
+                            {u.carrera === 'Tecnología de la Información' ? 'TI' : 'IS'}
+                          </span>
+                        </td>
+
+                        {u.prediccion ? (
+                          <>
+                            {/* Podio */}
+                            <td className="px-4 py-3" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
+                              <div className="flex items-center gap-1">
+                                {score.detalles.podio1 && <span className="text-[8px]" title="Correcto">✅</span>}
+                                <span className="text-xs font-bold" style={{ color: '#ffd600' }}>🥇 {u.prediccion.primerPuesto}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1">
+                                {score.detalles.podio2 && <span className="text-[8px]" title="Correcto">✅</span>}
+                                <span className="text-xs font-bold" style={{ color: 'rgba(240,230,255,.7)' }}>🥈 {u.prediccion.segundoPuesto}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1">
+                                {score.detalles.podio3 && <span className="text-[8px]" title="Correcto">✅</span>}
+                                <span className="text-xs font-bold" style={{ color: '#ff6d00' }}>🥉 {u.prediccion.tercerPuesto}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-[10px] font-mono whitespace-nowrap" style={{ color: 'rgba(240,230,255,.3)' }}>
+                              {new Date(u.prediccion.creadoEn).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: '2-digit' })}
+                            </td>
+
+                            {/* Ecuador */}
+                            <td className="px-4 py-3" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
+                              <div className="flex items-center gap-1">
+                                {score.detalles.ecuador && <span className="text-[8px]" title="Correcto">✅</span>}
+                                <span className="px-2 py-1 rounded-lg text-[10px] font-black"
+                                  style={{ background: 'rgba(57,255,20,.1)', color: '#39ff14', border: '1px solid rgba(57,255,20,.2)' }}>
+                                  #{u.prediccion.ecuadorPosicion}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              {(() => {
+                                const fase = getFaseCopa(u.prediccion!.ecuadorPosicion);
+                                return (
+                                  <div className="flex flex-col gap-1 min-w-[110px]">
+                                    <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
+                                      style={{ background: `${fase.color}18`, color: fase.color, border: `1px solid ${fase.color}40` }}>
+                                      {fase.icon} {fase.short}
+                                    </span>
+                                    <div className="flex gap-0.5">
+                                      {FASES_COPA.map((f, idx) => {
+                                        const faseIdx = FASES_COPA.indexOf(fase);
+                                        return (
+                                          <div key={f.label} title={f.label}
+                                            className="h-1 flex-1 rounded-full"
+                                            style={{ background: idx <= faseIdx ? f.color : 'rgba(255,255,255,.08)' }} />
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </td>
+
+                            {/* Partidos Grupo E */}
+                            {PARTIDOS_DEF.map((p, pi) => {
+                              const vals = u.prediccionPartidos
+                                ? [u.prediccionPartidos.partido1, u.prediccionPartidos.partido2, u.prediccionPartidos.partido3] as ResultadoPartido[]
+                                : null;
+                              const res = vals?.[pi];
+                              const detKey = `partido${pi + 1}` as 'partido1' | 'partido2' | 'partido3';
+                              const isCorrect = score.detalles[detKey];
+                              return (
+                                <td key={p.key} className="px-4 py-3" style={{ borderLeft: pi === 0 ? '1px solid rgba(255,255,255,.04)' : undefined }}>
+                                  {res ? (
+                                    <div className="flex items-center gap-1">
+                                      {isCorrect && <span className="text-[8px]" title="Correcto">✅</span>}
+                                      <span className="px-2 py-1 rounded-lg text-[10px] font-black whitespace-nowrap"
+                                        style={{ background: `${RES_MAP[res].color}18`, color: RES_MAP[res].color, border: `1px solid ${RES_MAP[res].color}40` }}>
+                                        {RES_MAP[res].label}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px]" style={{ color: 'rgba(240,230,255,.2)' }}>—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+
+                            {/* Puntos */}
+                            <td className="px-4 py-3 text-center" style={{ borderLeft: '1px solid rgba(255,214,0,.1)' }}>
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-base font-black"
+                                  style={{ color: score.puntaje > 0 ? '#ffd600' : 'rgba(240,230,255,.2)', textShadow: score.puntaje > 0 ? '0 0 8px rgba(255,214,0,.4)' : 'none' }}>
+                                  {score.puntaje}
+                                </span>
+                                <span className="text-[9px] font-bold" style={{ color: 'rgba(240,230,255,.2)' }}>/{MAX_PUNTAJE}</span>
+                              </div>
+                            </td>
+
+                            {/* Borrar */}
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => setConfirmarBorrado({ id: u.id, nombre: u.nombreCompleto })}
+                                disabled={borrandoId === u.id}
+                                title="Borrar predicción"
+                                className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
+                                style={{ background: 'rgba(255,0,128,.08)', border: '1px solid rgba(255,0,128,.25)', color: '#ff0080' }}>
+                                {borrandoId === u.id ? <Spinner size="sm" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              </button>
+                            </td>
+                          </>
+                        ) : (
+                          <td colSpan={11} className="px-4 py-3 text-center" style={{ borderLeft: '1px solid rgba(255,255,255,.04)' }}>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg"
+                              style={{ background: 'rgba(255,109,0,.08)', color: 'rgba(255,109,0,.6)', border: '1px solid rgba(255,109,0,.2)' }}>
+                              Sin apuesta
+                            </span>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -612,6 +888,9 @@ export default function AdminPage() {
               <div className="flex gap-4 text-[10px]" style={{ color: 'rgba(240,230,255,.3)' }}>
                 <span>Con podio: <strong style={{ color: '#39ff14' }}>{conApuesta}</strong></span>
                 <span>Con partidos: <strong style={{ color: '#bf00ff' }}>{conPartidos}</strong></span>
+                {hayResultados && (
+                  <span>Puntuación activa <span style={{ color: '#ffd600' }}>⭐</span></span>
+                )}
               </div>
             </div>
           </div>

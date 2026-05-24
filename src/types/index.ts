@@ -38,3 +38,37 @@ export interface Prediccion {
   ecuadorPosicion: number;
   creadoEn: string;
 }
+
+// Resultados reales ingresados por el admin
+export interface ResultadosReales {
+  primerPuesto: string | null;
+  segundoPuesto: string | null;
+  tercerPuesto: string | null;
+  ecuadorPosicion: number | null;   // posición representativa de la fase
+  partido1: ResultadoPartido | null;
+  partido2: ResultadoPartido | null;
+  partido3: ResultadoPartido | null;
+}
+
+// Desglose de qué acertó un usuario
+export interface PuntajeDetalles {
+  podio1: boolean;   // 3 pts
+  podio2: boolean;   // 2 pts
+  podio3: boolean;   // 1 pt
+  ecuador: boolean;  // 5 pts
+  partido1: boolean; // 2 pts
+  partido2: boolean; // 2 pts
+  partido3: boolean; // 2 pts
+}
+
+// Entrada del ranking/clasificación
+export interface EntradaClasificacion {
+  id: string;
+  nombreCompleto: string;
+  carrera: string;
+  nivel: string;
+  puntaje: number;
+  detalles: PuntajeDetalles;
+  tienePrediccion: boolean;
+  tienePartidos: boolean;
+}
